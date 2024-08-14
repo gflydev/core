@@ -45,26 +45,6 @@ Content `index.html`
 </html>
 ```
 
-Create dynamic page
-```bash
-touch resources/views/home.tpl
-```
-Content `home.tpl`
-```html
-<!DOCTYPE html>
-<html lang="en" dir="ltr">
-<head>
-    <meta charset="UTF-8"/>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
-    <title>gFly | Laravel inspired web framework written in Go</title>
-</head>
-<body>
-    <h2>{{ title }}</h2>
-</body>
-</html>
-```
-
 #### Create app `main.go`
 ```go
 package main
@@ -110,9 +90,7 @@ type HomePage struct {
 }
 
 func (m *HomePage) Handle(c *core.Ctx) error {
-    return c.View("home", core.Data{
-        "title": "gFly | Laravel inspired web framework written in Go",
-    })
+    return c.HTML("<h2>Hello world</h2>")
 }
 
 // =========================================================================================

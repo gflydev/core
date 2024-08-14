@@ -200,6 +200,11 @@ func (c *Ctx) NoContent() error {
 
 // View Render from template file.
 func (c *Ctx) View(template string, data Data) error {
+	// Make sure View Writer should be declared
+	if fnPerformViewWriter == nil {
+		panic("View Handler is NULL. Please use core.RegisterViewWriter(fn core.FnPerformViewWriter)")
+	}
+
 	c.ContentType(MIMETextHTMLCharsetUTF8)
 
 	data["appName"] = AppName
@@ -207,7 +212,7 @@ func (c *Ctx) View(template string, data Data) error {
 	data["appCode"] = AppCode
 	data["appDebug"] = AppDebug
 
-	return LoadViewWriter(template, data, c.root.Response.BodyWriter())
+	return fnPerformViewWriter(template, data, c.root.Response.BodyWriter())
 }
 
 // JSON Response json content.
