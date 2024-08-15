@@ -8,7 +8,7 @@
 ```bash
 mkdir myweb && cd myweb
 go mod init myweb
-go get -u github.com/gflydev/core
+go get -u github.com/gflydev/core@latest
 ```
 
 ### Play with gFly
