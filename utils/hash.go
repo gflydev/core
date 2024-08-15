@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -17,6 +18,14 @@ func Sha256(args ...any) string {
 	hash := sha256.New()
 	code := fmt.Sprintf(strings.Join(strSlice, "-"), args)
 	hash.Write([]byte(code))
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// MD5 hash md5 from string value
+func MD5(s string) string {
+	hash := md5.New()
+	hash.Write([]byte(s))
 
 	return hex.EncodeToString(hash.Sum(nil))
 }

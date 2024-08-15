@@ -1,57 +1,9 @@
 package core
 
 import (
-	crand "crypto/rand"
 	"github.com/gflydev/core/utils"
-	"github.com/valyala/bytebufferpool"
-	"github.com/valyala/fasthttp"
 	"strings"
-	"time"
 )
-
-var randBytesPool = bytebufferpool.Pool{}
-
-const (
-	charset        = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	charsetIdxBits = 6                     // 6 bits to represent a charset index
-	charsetIdxMask = 1<<charsetIdxBits - 1 // All 1-bits, as many as charsetIdxBits
-)
-
-// ExtendByte extends b to needLen bytes.
-func extendByte(b []byte, needLen int) []byte {
-	b = b[:cap(b)]
-	if n := needLen - cap(b); n > 0 {
-		b = append(b, make([]byte, n)...)
-	}
-
-	return b[:needLen]
-}
-
-// randByte returns dst with a cryptographically secure string random bytes.
-//
-// NOTE: Make sure that dst has the length you need.
-func randByte(dst []byte) []byte {
-	buf := randBytesPool.Get()
-	buf.B = extendByte(buf.B, len(dst))
-
-	if _, err := crand.Read(buf.B); err != nil {
-		panic(err)
-	}
-
-	size := len(dst)
-
-	for i, j := 0, 0; i < size; j++ {
-		// Mask bytes to get an index into the character slice.
-		if idx := int(buf.B[j%size] & charsetIdxMask); idx < len(charset) {
-			dst[i] = charset[idx]
-			i++
-		}
-	}
-
-	randBytesPool.Put(buf)
-
-	return dst
-}
 
 // cleanPath removes the '.' if it is the last character of the route
 func cleanPath(path string) string {
@@ -135,22 +87,4 @@ walk:
 			}
 		}
 	}
-}
-
-// token generate unique token
-func token(object ...string) string {
-	// Make random data
-	currentTime := time.Now().Format("20060102150405")
-	randomNum := utils.RandInt64(20)
-	// Token
-	return utils.Sha256(object, currentTime, randomNum)
-}
-
-// quoteStr escape special characters in a given string
-func quoteStr(raw string) string {
-	bb := bytebufferpool.Get()
-	quoted := utils.UnsafeStr(fasthttp.AppendQuotedArg(bb.B, utils.UnsafeBytes(raw)))
-	bytebufferpool.Put(bb)
-
-	return quoted
 }

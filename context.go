@@ -287,7 +287,7 @@ func (c *Ctx) Download(file string, filename ...string) error {
 	} else {
 		fName = filepath.Base(file)
 	}
-	c.root.Response.Header.Set(HeaderContentDisposition, `attachment; filename="`+quoteStr(fName)+`"`)
+	c.root.Response.Header.Set(HeaderContentDisposition, `attachment; filename="`+utils.QuoteStr(fName)+`"`)
 
 	return c.File(file)
 }
@@ -514,7 +514,7 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 			}
 
 			// Create temporary file.
-			tempName := fmt.Sprintf("%s.%s", token(), utils.FileExt(header.Filename))
+			tempName := fmt.Sprintf("%s.%s", utils.Token(), utils.FileExt(header.Filename))
 			filePath := fmt.Sprintf("%s/%s", TempDir, tempName)
 
 			// Save file
@@ -539,7 +539,7 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 		for name, v := range form.File {
 			for _, header := range v {
 				// Create temporary file.
-				tempName := fmt.Sprintf("%s.%s", token(), utils.FileExt(header.Filename))
+				tempName := fmt.Sprintf("%s.%s", utils.Token(), utils.FileExt(header.Filename))
 				filePath := fmt.Sprintf("%s/%s", TempDir, tempName)
 
 				err = fasthttp.SaveMultipartFile(header, filePath)

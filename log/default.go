@@ -14,7 +14,7 @@ import (
 var _ AllLogger = (*defaultLogger)(nil)
 
 type defaultLogger struct {
-	stdlog *log.Logger
+	stdLog *log.Logger
 	level  Level
 	depth  int
 }
@@ -30,7 +30,7 @@ func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
 	_, _ = buf.WriteString(level)   // It is fine to ignore the error
 	_, _ = fmt.Fprint(buf, fmtArgs) // It is fine to ignore the error
 
-	_ = l.stdlog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
+	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
 	buf.Reset()
 	bytebufferpool.Put(buf)
 	if lv == LevelFatal {
@@ -53,7 +53,7 @@ func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface
 	} else {
 		_, _ = fmt.Fprint(buf, fmtArgs...)
 	}
-	_ = l.stdlog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
+	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
 	buf.Reset()
 	bytebufferpool.Put(buf)
 	if lv == LevelFatal {
@@ -95,7 +95,7 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 		}
 	}
 
-	_ = l.stdlog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
+	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
 	buf.Reset()
 	bytebufferpool.Put(buf)
 	if lv == LevelFatal {
@@ -189,7 +189,7 @@ func (l *defaultLogger) Panicw(msg string, keysAndValues ...interface{}) {
 
 func (l *defaultLogger) WithContext(_ context.Context) CommonLogger {
 	return &defaultLogger{
-		stdlog: l.stdlog,
+		stdLog: l.stdLog,
 		level:  l.level,
 		depth:  l.depth - 1,
 	}
@@ -200,7 +200,7 @@ func (l *defaultLogger) SetLevel(level Level) {
 }
 
 func (l *defaultLogger) SetOutput(writer io.Writer) {
-	l.stdlog.SetOutput(writer)
+	l.stdLog.SetOutput(writer)
 }
 
 // DefaultLogger returns the default logger.

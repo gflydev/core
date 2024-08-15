@@ -106,7 +106,7 @@ func (fly *GFly) Run() {
 
 	// --------------- Checking service  ---------------
 	if fnPerformViewWriter == nil {
-		log.Warn("Template engine has been disabled")
+		log.Info("Template engine has been disabled")
 	}
 
 	// --------------- Global middlewares  ---------------

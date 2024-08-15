@@ -9,7 +9,7 @@ import (
 )
 
 var logger AllLogger = &defaultLogger{
-	stdlog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
+	stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
 	depth:  4,
 }
 

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"github.com/valyala/bytebufferpool"
+	"github.com/valyala/fasthttp"
 	"unsafe"
 )
 
@@ -19,13 +21,6 @@ func CopyStr(s string) string {
 	return string(UnsafeBytes(s))
 }
 
-// CopyBytes copies a slice to make it immutable
-func CopyBytes(b []byte) []byte {
-	tmp := make([]byte, len(b))
-	copy(tmp, b)
-	return tmp
-}
-
 // IncludeStr returns true or false if given string is in slice.
 func IncludeStr(slice []string, s string) bool {
 	return IndexOfStr(slice, s) != -1
@@ -41,4 +36,13 @@ func IndexOfStr(slice []string, s string) int {
 	}
 
 	return -1
+}
+
+// QuoteStr escape special characters in a given string
+func QuoteStr(raw string) string {
+	bb := bytebufferpool.Get()
+	quoted := UnsafeStr(fasthttp.AppendQuotedArg(bb.B, UnsafeBytes(raw)))
+	bytebufferpool.Put(bb)
+
+	return quoted
 }

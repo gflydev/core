@@ -1,17 +1,33 @@
 package utils
 
-import "strings"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 // FileExt Extract extension of file.
+//
+//	Eg Get `jpeg` from `https://902-local.s3.us-west-1.amazonaws.com/news/Avatar2023.jpeg`
+//		Or `63e85ba1.png` from `storage/tmp/63e85ba1.png`
 func FileExt(fileName string) string {
-	filePart := strings.Split(fileName, ".")
+	filePart := filepath.Ext(fileName)
 
-	return filePart[len(filePart)-1]
+	if len(filePart) > 0 {
+		return filePart[1:]
+	}
+
+	return filePart
 }
 
-// FileName Extract file name of file path.
-func FileName(filePath string) string {
-	filePart := strings.Split(filePath, "/")
+// RenameFile Extract new file path.
+//
+//	Eg Get `hello.jpeg` from `Avatar2023.jpeg` and `hello`
+//		Or `storage/tmp/hello.png` from `storage/tmp/63e85ba1.png` and `hello`
+func RenameFile(fileName, newName string) string {
+	// Create new file base
+	newBase := fmt.Sprintf("%s%s", newName, filepath.Ext(fileName))
+	// Get file path
+	filePath := filepath.Dir(fileName)
 
-	return filePart[len(filePart)-1]
+	return filepath.Join(filePath, newBase)
 }

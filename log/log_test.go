@@ -16,7 +16,7 @@ func Test_DefaultSystemLogger(t *testing.T) {
 
 func Test_SetLogger(t *testing.T) {
 	setLog := &defaultLogger{
-		stdlog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
+		stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
 		depth:  6,
 	}
 
@@ -80,7 +80,7 @@ func Benchmark_DefaultSystemLogger(b *testing.B) {
 
 func Benchmark_SetLogger(b *testing.B) {
 	setLog := &defaultLogger{
-		stdlog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
+		stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
 		depth:  6,
 	}
 
@@ -151,7 +151,7 @@ func Benchmark_DefaultSystemLogger_Parallel(b *testing.B) {
 
 func Benchmark_SetLogger_Parallel(b *testing.B) {
 	setLog := &defaultLogger{
-		stdlog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
+		stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
 		depth:  6,
 	}
 

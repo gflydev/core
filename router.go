@@ -18,7 +18,7 @@ var (
 
 	// matchedRoutePathParam is the param name under which the path of the matched
 	// route is stored, if Router.SaveMatchedRoutePath is set.
-	matchedRoutePathParam = fmt.Sprintf("__matchedRoutePath::%s__", randByte(make([]byte, 15)))
+	matchedRoutePathParam = fmt.Sprintf("__matchedRoutePath::%s__", utils.RandByte(make([]byte, 15)))
 )
 
 // Router is a RequestHandler which can be used to dispatch requests to different

@@ -40,6 +40,9 @@ func RandByte(dst []byte) []byte {
 }
 
 // ExtendByte extends b to needLen bytes.
+//
+// Example b have [10 23 34 129], needLen 2. So return [10 23]
+// Example b have [10 23 34 129], needLen 10. So return [10 23 34 129 0 0 0 0 0 0]
 func ExtendByte(b []byte, needLen int) []byte {
 	b = b[:cap(b)]
 	if n := needLen - cap(b); n > 0 {
@@ -50,6 +53,8 @@ func ExtendByte(b []byte, needLen int) []byte {
 }
 
 // PrependByte prepends bytes into a given byte slice.
+//
+// Example dst have [10 23 34] src is 44 54. So return [44 54 10 23 34]
 func PrependByte(dst []byte, src ...byte) []byte {
 	dstLen := len(dst)
 	srcLen := len(src)
@@ -61,7 +66,19 @@ func PrependByte(dst []byte, src ...byte) []byte {
 	return dst
 }
 
-// PrependString prepends a string into a given byte slice.
-func PrependString(dst []byte, src string) []byte {
+// PrependByteStr prepends a string into a given byte slice.
+func PrependByteStr(dst []byte, src string) []byte {
 	return PrependByte(dst, UnsafeBytes(src)...)
+}
+
+// CopyByte returns a copy of byte slice in a new pointer.
+func CopyByte(b []byte) []byte {
+	return []byte(UnsafeStr(b))
+}
+
+// EqualByte reports whether a and b
+// are the same length and contain the same bytes.
+// A nil argument is equivalent to an empty slice.
+func EqualByte(a, b []byte) bool {
+	return UnsafeStr(a) == UnsafeStr(b)
 }
