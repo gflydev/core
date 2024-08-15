@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/gflydev/core/log"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -70,7 +69,6 @@ func Test_RenameFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			newFilePath := RenameFile(tt.filePath, tt.newName)
-			log.Info(newFilePath, tt.expected)
 			require.Equal(t, tt.expected, newFilePath)
 		})
 	}

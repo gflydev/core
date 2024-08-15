@@ -7,4 +7,7 @@ test.utils:
 test.log:
 	go test -v ./log
 
-test: test.try test.log test.utils
+test.errors:
+	go test -v ./errors
+
+test: test.try test.log test.utils test.errors
