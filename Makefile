@@ -11,3 +11,6 @@ test.errors:
 	go test -v ./errors
 
 test: test.try test.log test.utils test.errors
+
+mod:
+	go list -m --versions
