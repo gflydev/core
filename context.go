@@ -631,6 +631,10 @@ type IData interface {
 	SetData(key string, data interface{})
 	// GetData Get data from request context Ctx.
 	GetData(key string) interface{}
+	// SetSession Keep data in request context Ctx.
+	SetSession(key string, data interface{})
+	// GetSession Get data from request context Ctx.
+	GetSession(key string) interface{}
 }
 
 // SetData Keep data in request context Ctx.
@@ -641,4 +645,14 @@ func (c *Ctx) SetData(key string, data interface{}) {
 // GetData Get data from request context Ctx.
 func (c *Ctx) GetData(key string) interface{} {
 	return c.data[key]
+}
+
+// SetSession Keep data in session.
+func (c *Ctx) SetSession(key string, data interface{}) {
+	session.Set(c, key, data)
+}
+
+// GetSession Get data from session.
+func (c *Ctx) GetSession(key string) interface{} {
+	return session.Get(c, key)
 }
