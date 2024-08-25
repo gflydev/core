@@ -23,10 +23,10 @@ var (
 
 	// Storage directory
 
-	StorageDir = utils.Getenv("STORAGE_DIR", "storage")   // Directory `{APP}/storage`
-	TempDir    = utils.Getenv("TEMP_DIR", "storage/temp") // Directory `{APP}/storage/temp`
-	LogDir     = utils.Getenv("LOG_DIR", "storage/logs")  // Directory `{APP}/storage/log`
-	AppDir     = utils.Getenv("APP_DIR", "storage/app")   // Directory `{APP}/storage/app`
+	StorageDir = utils.Getenv("STORAGE_DIR", "storage")  // Directory `{APP}/storage`
+	TempDir    = utils.Getenv("TEMP_DIR", "storage/tmp") // Directory `{APP}/storage/temp`
+	LogDir     = utils.Getenv("LOG_DIR", "storage/logs") // Directory `{APP}/storage/log`
+	AppDir     = utils.Getenv("APP_DIR", "storage/app")  // Directory `{APP}/storage/app`
 
 	// Internal variable
 

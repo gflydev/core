@@ -17,7 +17,7 @@ go get -u github.com/gflydev/core@latest
 
 Inside your application folder `myweb` 
 ```bash
-mkdir -p storage/temp
+mkdir -p storage/tmp
 mkdir -p storage/logs
 mkdir -p storage/app
 mkdir -p resources/views
