@@ -53,6 +53,7 @@ import (
     "fmt"
     "github.com/gflydev/core"
     "github.com/gflydev/core/utils"
+    _ "github.com/joho/godotenv/autoload"
 )
 
 // =========================================================================================

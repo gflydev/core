@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
-	_ "github.com/joho/godotenv/autoload" // load .env file automatically
 	"github.com/valyala/fasthttp"
 )
 
