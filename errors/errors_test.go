@@ -48,10 +48,8 @@ func Test_New(t *testing.T) {
 			switch tt.args.(type) {
 			case []string, []int:
 				err = New(tt.format, utils.UnpackArray(tt.args)...)
-				break
 			default:
 				err = New(tt.format, tt.args)
-				break
 			}
 
 			if tt.isEqual {

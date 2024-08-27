@@ -12,7 +12,7 @@ import (
 func FileExt(fileName string) string {
 	filePart := filepath.Ext(fileName)
 
-	if len(filePart) > 0 {
+	if filePart != "" {
 		return filePart[1:]
 	}
 
