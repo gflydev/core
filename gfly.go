@@ -34,7 +34,7 @@ var (
 )
 
 type FnHookMiddleware func(fly IFlyMiddleware)
-type FnHookRoute func(fly IFlyRouter)
+type FnHookRoute func(fly IFly)
 
 // IFly Interface to declare all methods for gFly struct.
 type IFly interface {
