@@ -38,6 +38,15 @@ func Test_New(t *testing.T) {
 			expected: "file1's size `123` and file2's size `324`",
 			isEqual:  true,
 		},
+		"Test file not found": {
+			format: "",
+			args: FileNotFound{
+				FileName: "my-file.pdf",
+				Path:     "/tmp",
+			},
+			expected: "File my-file.pdf not found at location /tmp",
+			isEqual:  true,
+		},
 	}
 
 	for name, tt := range tests {
@@ -48,6 +57,8 @@ func Test_New(t *testing.T) {
 			switch tt.args.(type) {
 			case []string, []int:
 				err = New(tt.format, utils.UnpackArray(tt.args)...)
+			case FileNotFound:
+				err = tt.args.(FileNotFound)
 			default:
 				err = New(tt.format, tt.args)
 			}
