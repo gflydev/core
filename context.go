@@ -267,7 +267,7 @@ func (c *Ctx) Redirect(path string) error {
 	c.root.Redirect(path, StatusMovedPermanently)
 	log.Tracef("redirect to %s", path)
 
-	return errors.NA
+	return errors.UnknownError
 }
 
 // Download transfers the file from path as an attachment.
