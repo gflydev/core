@@ -50,10 +50,10 @@ Content `index.html`
 package main
 
 import (
-    "fmt"
-    "github.com/gflydev/core"
-    "github.com/gflydev/core/utils"
-    _ "github.com/joho/godotenv/autoload"
+	"fmt"
+	"github.com/gflydev/core"
+	"github.com/gflydev/core/utils"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 // =========================================================================================
@@ -62,72 +62,72 @@ import (
 
 // NewDefaultApi As a constructor to create new API.
 func NewDefaultApi() *DefaultApi {
-    return &DefaultApi{}
+	return &DefaultApi{}
 }
 
 // DefaultApi API struct.
 type DefaultApi struct {
-    core.Api
+	core.Api
 }
 
 func (h *DefaultApi) Handle(c *core.Ctx) error {
-    return c.JSON(core.Data{
-        "name":   core.AppName,
-        "server": core.AppURL,
-    })
+	return c.JSON(core.Data{
+		"name":   core.AppName,
+		"server": core.AppURL,
+	})
 }
 
 // =========================================================================================
-//                                     Home page 
+//                                     Home page
 // =========================================================================================
 
 // NewHomePage As a constructor to create a Home Page.
 func NewHomePage() *HomePage {
-    return &HomePage{}
+	return &HomePage{}
 }
 
 type HomePage struct {
-    core.Page
+	core.Page
 }
 
 func (m *HomePage) Handle(c *core.Ctx) error {
-    return c.HTML("<h2>Hello world</h2>")
+	return c.HTML("<h2>Hello world</h2>")
 }
 
 // =========================================================================================
 //                                     Routers
 // =========================================================================================
 
-func router(g core.IFlyRouter) {
-    prefixAPI := fmt.Sprintf(
-        "/%s/%s",
-        utils.Getenv("API_PREFIX", "api"),
-        utils.Getenv("API_VERSION", "v1"),
-    )
+func router(g core.IFly) {
+	prefixAPI := fmt.Sprintf(
+		"/%s/%s",
+		utils.Getenv("API_PREFIX", "api"),
+		utils.Getenv("API_VERSION", "v1"),
+	)
 
-    // API Routers
-    g.Group(prefixAPI, func(apiRouter *core.Group) {
-        apiRouter.GET("/info", NewDefaultApi())
-    })
+	// API Routers
+	g.Group(prefixAPI, func(apiRouter *core.Group) {
+		apiRouter.GET("/info", NewDefaultApi())
+	})
 
 	// Web Routers
-    g.GET("/home", NewHomePage())
+	g.GET("/home", NewHomePage())
 }
 
 // =========================================================================================
-//                                     Application 
+//                                     Application
 // =========================================================================================
 
 func main() {
-    app := core.New()
+	app := core.New()
 
-    // Register middleware
-    //app.RegisterMiddleware(hookMiddlewares)
+	// Register middleware
+	//app.RegisterMiddleware(hookMiddlewares)
 
-    // Register router
-    app.RegisterRouter(router)
+	// Register router
+	app.RegisterRouter(router)
 
-    app.Run()
+	app.Run()
 }
 ```
 
