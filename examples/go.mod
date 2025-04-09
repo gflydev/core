@@ -3,7 +3,7 @@ module examples
 go 1.24.0
 
 require (
-	github.com/gflydev/core v1.11.0
+	github.com/gflydev/core v1.11.3
 	github.com/joho/godotenv v1.5.1
 )
 
