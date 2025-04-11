@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/valyala/bytebufferpool"
@@ -20,64 +21,97 @@ const (
 )
 
 const (
-	errSetHandler         = "a handler is already registered for path '%s'"
+	// errSetHandler occurs when a handler is already registered for a specific path.
+	errSetHandler = "a handler is already registered for path '%s'"
+
+	// errSetWildcardHandler occurs when a wildcard handler is already registered for a specific path.
 	errSetWildcardHandler = "a wildcard handler is already registered for path '%s'"
-	errWildPathConflict   = "'%s' in new path '%s' conflicts with existing wild path '%s' in existing prefix '%s'"
-	errWildcardConflict   = "'%s' in new path '%s' conflicts with existing wildcard '%s' in existing prefix '%s'"
-	errWildcardSlash      = "no / before wildcard in path '%s'"
-	errWildcardNotAtEnd   = "wildcard routes are only allowed at the end of the path in path '%s'"
+
+	// errWildPathConflict occurs when a new path conflicts with an existing wild path in the prefix.
+	errWildPathConflict = "'%s' in new path '%s' conflicts with existing wild path '%s' in existing prefix '%s'"
+
+	// errWildcardConflict occurs when a new path conflicts with an existing wildcard in the prefix.
+	errWildcardConflict = "'%s' in new path '%s' conflicts with existing wildcard '%s' in existing prefix '%s'"
+
+	// errWildcardSlash occurs when there is no '/' before a wildcard in the path.
+	errWildcardSlash = "no / before wildcard in path '%s'"
+
+	// errWildcardNotAtEnd occurs when wildcard routes are not at the end of the path as expected.
+	errWildcardNotAtEnd = "wildcard routes are only allowed at the end of the path in path '%s'"
 )
 
+// radixError represents a custom error with a message and related parameters.
 type radixError struct {
-	msg    string
-	params []interface{}
+	msg    string        // Error message template
+	params []interface{} // Parameters for formatting the error message
 }
 
+// Error returns the formatted error message for a radixError.
 func (err radixError) Error() string {
 	return fmt.Sprintf(err.msg, err.params...)
 }
 
+// newRadixError creates a new radixError instance.
+// Parameters:
+//   - msg: The error message template.
+//   - params: A variadic slice of parameters to format the message.
+//
+// Returns:
+//   - radixError: The created custom error instance.
 func newRadixError(msg string, params ...interface{}) radixError {
 	return radixError{msg, params}
 }
 
+// nodeType defines the type of a node in the tree.
 type nodeType uint8
 
+// nodeWildcard represents a wildcard node in the routing tree.
 type nodeWildcard struct {
-	path     string
-	paramKey string
-	handler  IHandler
+	path     string   // The actual wildcard path.
+	paramKey string   // The name of the parameter associated with the wildcard.
+	handler  IHandler // The request handler associated with the wildcard node.
 }
 
+// node represents a single node in the routing tree.
 type node struct {
-	nType nodeType
+	nType        nodeType      // The type of the node (e.g., root, static, param, wildcard).
+	path         string        // The value of the path segment for the node.
+	tsr          bool          // Indicates if the node is a Trailing Slash Redirect (TSR) node.
+	handler      IHandler      // The request handler associated with the node (if any).
+	hasWildChild bool          // Indicates if the node has a wildcard child.
+	children     []*node       // Direct child nodes of the current node.
+	wildcard     *nodeWildcard // Wildcard configuration for the node, if applicable.
 
-	path         string
-	tsr          bool
-	handler      IHandler
-	hasWildChild bool
-	children     []*node
-	wildcard     *nodeWildcard
-
-	paramKeys  []string
-	paramRegex *regexp.Regexp
+	paramKeys  []string       // Parameter keys for parameterized paths.
+	paramRegex *regexp.Regexp // Regular expression for validating parameterized paths.
 }
 
+// wildPath represents details about a wildcard or parameterized path segment.
 type wildPath struct {
-	path  string
-	keys  []string
-	start int
-	end   int
-	pType nodeType
-
-	pattern string
-	regex   *regexp.Regexp
+	path    string         // The path of the wildcard.
+	keys    []string       // Key names extracted from the wildcard path.
+	start   int            // Start index of the wildcard in the path.
+	end     int            // End index of the wildcard in the path.
+	pType   nodeType       // Type of the wildcard (e.g., param, wildcard).
+	pattern string         // Regex pattern for the wildcard.
+	regex   *regexp.Regexp // Compiled regex pattern for wildcard validation.
 }
 
+// panicf formats a string with the provided arguments and triggers a panic with the resulting message.
+// Parameters:
+//   - s: The format string.
+//   - args: Variadic arguments used to format the string.
 func panicf(s string, args ...interface{}) {
 	panic(fmt.Sprintf(s, args...))
 }
 
+// minVal returns the smaller of two integers.
+// Parameters:
+//   - a: The first integer.
+//   - b: The second integer.
+//
+// Returns:
+//   - int: The smaller value between a and b.
 func minVal(a, b int) int {
 	if a <= b {
 		return a
@@ -89,16 +123,31 @@ func bufferRemoveString(buf *bytebufferpool.ByteBuffer, s string) {
 	buf.B = buf.B[:len(buf.B)-len(s)]
 }
 
-// func isIndexEqual(a, b string) bool {
-// 	ra, _ := utf8.DecodeRuneInString(a)
-// 	rb, _ := utf8.DecodeRuneInString(b)
+// isIndexEqual compares the first rune of two strings for equality in a case-insensitive manner.
+//
+// Parameters:
+//   - a: The first string to compare.
+//   - b: The second string to compare.
+//
+// Returns:
+//   - bool: True if the first rune of both strings is equal (ignoring case), otherwise false.
+func isIndexEqual(a, b string) bool {
+	ra, _ := utf8.DecodeRuneInString(a)
+	rb, _ := utf8.DecodeRuneInString(b)
 
-// 	return unicode.ToLower(ra) == unicode.ToLower(rb)
-// }
+	return unicode.ToLower(ra) == unicode.ToLower(rb)
+}
 
-// longestCommonPrefix finds the longest common prefix.
-// This also implies that the common prefix contains no ':' or '*'
-// since the existing key can't contain those chars.
+// longestCommonPrefix finds the longest common prefix between two strings.
+// This function also ensures that the common prefix does not contain ':' or '*'
+// characters, since those are invalid in existing keys.
+//
+// Parameters:
+//   - a: The first string to compare.
+//   - b: The second string to compare.
+//
+// Returns:
+//   - int: The length of the longest common prefix between the two input strings.
 func longestCommonPrefix(a, b string) int {
 	i := 0
 	maxVal := minVal(utf8.RuneCountInString(a), utf8.RuneCountInString(b))
@@ -120,7 +169,14 @@ func longestCommonPrefix(a, b string) int {
 	return i
 }
 
-// segmentEndIndex returns the index where the segment ends from the given path
+// segmentEndIndex returns the index where the segment ends from the given path.
+//
+// Parameters:
+//   - path: The input string path to search for the segment end.
+//   - includeTSR: Boolean flag indicating whether to consider a trailing slash redirect (TSR) as part of the segment.
+//
+// Returns:
+//   - int: The index where the current segment ends.
 func segmentEndIndex(path string, includeTSR bool) int {
 	end := 0
 	for end < len(path) && path[end] != '/' {
@@ -134,8 +190,17 @@ func segmentEndIndex(path string, includeTSR bool) int {
 	return end
 }
 
-// findWildPath search for a wild path segment and check the name for invalid characters.
-// Returns -1 as index, if no param/wildcard was found.
+// findWildPath searches for a wildcard segment in a given path and validates the segment name
+// for invalid characters. It analyses the path to extract wildcard details, including its name,
+// type, and optional regex pattern.
+//
+// Parameters:
+//   - path: The current path segment where the search for a wildcard begins.
+//   - fullPath: The original full path from which `path` is derived. Used for error reporting.
+//
+// Returns:
+//   - *wildPath: A pointer to a `wildPath` struct containing wildcard details such as its
+//     name, position, type, and optional regex pattern. Returns nil if no wildcard is found.
 func findWildPath(path, fullPath string) *wildPath {
 	// Find start
 	for start, c := range []byte(path) {
@@ -235,15 +300,18 @@ func findWildPath(path, fullPath string) *wildPath {
 	return nil
 }
 
-// Tree is a routes storage
+// Tree is a routes storage, which organizes routing paths in a hierarchical structure.
 type Tree struct {
 	root *node
 
-	// If enabled, the node handler could be updated
+	// If enabled, the node handler could be updated.
 	Mutable bool
 }
 
-// NewTree returns an empty routes storage
+// NewTree creates and returns a new instance of a Tree with an initialized root node.
+//
+// Returns:
+//   - *Tree: An empty tree structure with a root node of type 'root'.
 func NewTree() *Tree {
 	return &Tree{
 		root: &node{
@@ -252,9 +320,24 @@ func NewTree() *Tree {
 	}
 }
 
-// Add adds a node with the given handle to the path.
+// Add adds a node with the specified path and associated handler to the tree.
+// The path must begin with a '/' character, and the handler should not be nil.
+// This function is not safe to call concurrently.
 //
 // WARNING: Not concurrency-safe!
+//
+// Parameters:
+//   - path (string): The path of the node to add. It must start with '/'.
+//   - handler (IHandler): The handler to associate with the specified path.
+//
+// Panics:
+//   - If the path does not begin with a '/' character.
+//   - If the handler is nil.
+//
+// Behavior:
+//   - If the given path already exists in the tree structure and the node can
+//     be updated (i.e., t.Mutable is true), the handler will be updated.
+//   - If conflicts occur or the node can't be updated, the function may panic.
 func (t *Tree) Add(path string, handler IHandler) {
 	if !strings.HasPrefix(path, "/") {
 		panicf("path must begin with '/' in path '%s'", path)
@@ -300,11 +383,26 @@ func (t *Tree) Add(path string, handler IHandler) {
 	t.root.sort()
 }
 
-// Get returns the handle registered with the given path (key). The values of
-// param/wildcard are saved as ctx.UserValue.
-// If no handle can be found, a TSR (trailing slash redirect) recommendation is
-// made if a handle exists with an extra (without the) trailing slash for the
-// given path.
+// Get searches for a handler associated with the given path in the tree structure.
+// It processes the given path to find the appropriate handler and updates the context
+// with the values of parameters or wildcards if they exist. Additionally, it can suggest
+// a trailing slash redirection if applicable.
+//
+// Parameters:
+//   - path (string): The path to search for in the tree.
+//   - ctx (*Ctx): The context to be updated with user values (e.g., parameters or wildcards).
+//
+// Returns:
+//   - (IHandler): The handler associated with the given path, or nil if none is found.
+//   - (bool): A boolean indicating if a trailing slash redirect (TSR) is recommended.
+//
+// Behavior:
+//   - If the path matches the root or its child nodes, the relevant handler is returned.
+//   - In case of trailing slash differences, it may recommend a TSR (if possible).
+//   - Wildcard handlers are matched depending on the path and updated in the context.
+//
+// Notes:
+//   - If no handler exists for the path, nil is returned along with false for TSR.
 func (t *Tree) Get(path string, ctx *Ctx) (IHandler, bool) {
 	if len(path) > len(t.root.path) {
 		if path[:len(t.root.path)] != t.root.path {
@@ -333,11 +431,22 @@ func (t *Tree) Get(path string, ctx *Ctx) (IHandler, bool) {
 	return nil, false
 }
 
-// FindCaseInsensitivePath makes a case-insensitive lookup of the given path
-// and tries to find a handler.
-// It can optionally also fix trailing slashes.
-// It returns the case-corrected path and a bool indicating whether the lookup
-// was successful.
+// FindCaseInsensitivePath performs a case-insensitive search for the specified path
+// within the tree structure, taking into account optional trailing slash handling.
+//
+// Parameters:
+//   - path (string): The path to search for. Case-insensitiveness ensures matches
+//     regardless of the path's letter casing.
+//   - fixTrailingSlash (bool): Determines if trailing slash differences should be corrected
+//     during the lookup. If true, finds matches with discrepancies
+//     in trailing slashes and adjusts accordingly.
+//   - buf (*bytebufferpool.ByteBuffer): A buffer used for temporary path modifications
+//     during the search process.
+//
+// Returns:
+//   - (bool): A boolean indicating whether the path was successfully found:
+//   - true: The path was found, optionally corrected for case or trailing slashes.
+//   - false: The path was not found or could not be resolved due to differences.
 func (t *Tree) FindCaseInsensitivePath(path string, fixTrailingSlash bool, buf *bytebufferpool.ByteBuffer) bool {
 	found, tsr := t.root.find(path, buf)
 
@@ -350,6 +459,13 @@ func (t *Tree) FindCaseInsensitivePath(path string, fixTrailingSlash bool, buf *
 	return true
 }
 
+// newNode creates a new instance of a node with the specified path.
+//
+// Parameters:
+//   - path (string): The value of the path segment for the new node.
+//
+// Returns:
+//   - *node: A pointer to the newly created node with the given path.
 func newNode(path string) *node {
 	return &node{
 		nType: static,
@@ -357,14 +473,28 @@ func newNode(path string) *node {
 	}
 }
 
-// conflict raises a panic with some details
+// conflict checks for a wildcard path conflict and raises a panic with details if a conflict is found.
+//
+// Parameters:
+//   - path (string): The conflicting path segment causing the conflict.
+//   - fullPath (string): The full path that includes the conflicting segment.
+//
+// Returns:
+//   - error: An error detailing the wildcard path conflict.
 func (n *nodeWildcard) conflict(path, fullPath string) error {
 	prefix := fullPath[:strings.LastIndex(fullPath, path)] + n.path
 
 	return newRadixError(errWildcardConflict, path, fullPath, n.path, prefix)
 }
 
-// wildPathConflict raises a panic with some details
+// wildPathConflict checks for a wild path conflict in the node and raises a panic with details if a conflict is found.
+//
+// Parameters:
+//   - path (string): The conflicting path segment being checked.
+//   - fullPath (string): The full path where the conflict occurs.
+//
+// Returns:
+//   - error: An error detailing the wild path conflict.
 func (n *node) wildPathConflict(path, fullPath string) error {
 	pathSeg := strings.SplitN(path, "/", 2)[0]
 	prefix := fullPath[:strings.LastIndex(fullPath, path)] + n.path
@@ -372,40 +502,57 @@ func (n *node) wildPathConflict(path, fullPath string) error {
 	return newRadixError(errWildPathConflict, pathSeg, fullPath, n.path, prefix)
 }
 
-// clone clones the current node in a new pointer
+// clone creates a deep copy of the current node and returns it.
+//
+// Returns:
+//   - *node: A pointer to the newly created cloned node with copied data.
 func (n *node) clone() *node {
 	cloneNode := new(node)
-	cloneNode.nType = n.nType
-	cloneNode.path = n.path
-	cloneNode.tsr = n.tsr
-	cloneNode.handler = n.handler
+	cloneNode.nType = n.nType     // Copy the node type.
+	cloneNode.path = n.path       // Copy the path of the node.
+	cloneNode.tsr = n.tsr         // Copy the trailing slash redirect flag.
+	cloneNode.handler = n.handler // Copy the handler associated with the node.
 
+	// Clone all child nodes recursively.
 	if len(n.children) > 0 {
 		cloneNode.children = make([]*node, len(n.children))
-
 		for i, child := range n.children {
-			cloneNode.children[i] = child.clone()
+			cloneNode.children[i] = child.clone() // Recursively clone each child node.
 		}
 	}
 
+	// Clone wildcard configuration if present.
 	if n.wildcard != nil {
 		cloneNode.wildcard = &nodeWildcard{
-			path:     n.wildcard.path,
-			paramKey: n.wildcard.paramKey,
-			handler:  n.wildcard.handler,
+			path:     n.wildcard.path,     // Copy the wildcard path.
+			paramKey: n.wildcard.paramKey, // Copy the wildcard's parameter key.
+			handler:  n.wildcard.handler,  // Copy the handler for the wildcard.
 		}
 	}
 
+	// Clone parameter keys if present.
 	if len(n.paramKeys) > 0 {
 		cloneNode.paramKeys = make([]string, len(n.paramKeys))
-		copy(cloneNode.paramKeys, n.paramKeys)
+		copy(cloneNode.paramKeys, n.paramKeys) // Copy parameter keys.
 	}
 
-	cloneNode.paramRegex = n.paramRegex
+	cloneNode.paramRegex = n.paramRegex // Copy the parameter regex if present.
 
 	return cloneNode
 }
 
+// split splits the current node at the specified index, creating a new child node
+// with the remaining part of the path and reassigning properties accordingly.
+//
+// Parameters:
+//   - i (int): The index at which the current node's path should be split.
+//
+// Behavior:
+//   - Creates a cloned child node with the part of the path after the split index.
+//   - Updates the current node's path to retain the part before the split index.
+//   - Clears handler, TSR flag, wildcard configuration, and parameter-related properties
+//     of the current node.
+//   - Reassigns the cloned child node as the current node's only child.
 func (n *node) split(i int) {
 	cloneChild := n.clone()
 	cloneChild.nType = static
@@ -420,6 +567,15 @@ func (n *node) split(i int) {
 	n.children = append(n.children[:0], cloneChild)
 }
 
+// findEndIndexAndValues parses a path segment and extracts the ending index
+// and associated parameter values based on the node's parameter regex.
+//
+// Parameters:
+//   - path (string): The path segment to parse and extract parameter values from.
+//
+// Returns:
+//   - (int): The index at which the matched parameter ends within the path.
+//   - ([]string): A slice of extracted parameter values matched by the regex.
 func (n *node) findEndIndexAndValues(path string) (int, []string) {
 	index := n.paramRegex.FindStringSubmatchIndex(path)
 	if len(index) == 0 || index[0] != 0 {
@@ -445,6 +601,16 @@ func (n *node) findEndIndexAndValues(path string) (int, []string) {
 	return end, values
 }
 
+// setHandle assigns a request handler to the node, ensuring no conflicts in
+// handler placement and handling trailing slash redirects.
+//
+// Parameters:
+//   - handler (IHandler): The request handler to associate with the node.
+//   - fullPath (string): The complete path for the handler being set.
+//
+// Returns:
+//   - (*node): The current node with the handler set.
+//   - (error): Error details in case of conflicts while setting the handler.
 func (n *node) setHandle(handler IHandler, fullPath string) (*node, error) {
 	if n.handler != nil || n.tsr {
 		return n, newRadixError(errSetHandler, fullPath)
@@ -481,6 +647,17 @@ func (n *node) setHandle(handler IHandler, fullPath string) (*node, error) {
 	return n, nil
 }
 
+// insert adds a new handler for the given path into the current node, handling
+// static paths, parameters, and wildcards as needed.
+//
+// Parameters:
+//   - path (string): The path segment to insert.
+//   - fullPath (string): The full path of the handler being inserted, used for conflict detection and error reporting.
+//   - handler (IHandler): The handler to associate with the specified path.
+//
+// Returns:
+//   - (*node): A pointer to the node where the handler was successfully inserted.
+//   - (error): An error if a conflict or invalid insertion occurs.
 func (n *node) insert(path, fullPath string, handler IHandler) (*node, error) {
 	end := segmentEndIndex(path, true)
 	child := newNode(path)
@@ -552,7 +729,7 @@ func (n *node) insert(path, fullPath string, handler IHandler) (*node, error) {
 
 	switch {
 	case child.path == "/":
-		// Add TSR when split a edge and the remain path to insert is "/"
+		// Add TSR when split an edge and the remaining path to insert is "/"
 		n.tsr = true
 	case strings.HasSuffix(child.path, "/"):
 		child.split(len(child.path) - 1)
@@ -566,7 +743,17 @@ func (n *node) insert(path, fullPath string, handler IHandler) (*node, error) {
 	return child, nil
 }
 
-// add adds the handler to node for the given path
+// add adds a handler to the node for the specified path, processing static paths,
+// parameters, and wildcards as appropriate.
+//
+// Parameters:
+//   - path (string): The path segment where the handler is to be added.
+//   - fullPath (string): The complete path being added, used for conflict detection and error reporting.
+//   - handler (IHandler): The request handler to associate with the specified path.
+//
+// Returns:
+//   - (*node): A pointer to the node where the handler was successfully added.
+//   - (error): An error if a conflict or invalid addition occurs.
 func (n *node) add(path, fullPath string, handler IHandler) (*node, error) {
 	if path == "" {
 		return n.setHandle(handler, fullPath)
@@ -621,6 +808,15 @@ func (n *node) add(path, fullPath string, handler IHandler) (*node, error) {
 	return n.insert(path, fullPath, handler)
 }
 
+// getFromChild traverses the child nodes to find a matching handler for the given path.
+//
+// Parameters:
+//   - path (string): The portion of the path to match against the child nodes.
+//   - ctx (*Ctx): The context object to store user values if applicable.
+//
+// Returns:
+//   - (IHandler): The handler associated with the matched path, or nil if no match is found.
+//   - (bool): A boolean indicating if a trailing slash redirect (TSR) is required.
 func (n *node) getFromChild(path string, ctx *Ctx) (IHandler, bool) {
 	for _, child := range n.children {
 		switch child.nType {
@@ -715,6 +911,16 @@ func (n *node) getFromChild(path string, ctx *Ctx) (IHandler, bool) {
 	return nil, false
 }
 
+// find traverses the current node and its children to find a matching path,
+// while appending the successfully matched segments to the provided buffer.
+//
+// Parameters:
+//   - path (string): The path to search for within the current node and its descendants.
+//   - buf (*bytebufferpool.ByteBuffer): The buffer to store matched path segments.
+//
+// Returns:
+//   - (bool): Indicates whether a match was found.
+//   - (bool): Indicates whether a trailing slash redirect (TSR) is required.
 func (n *node) find(path string, buf *bytebufferpool.ByteBuffer) (bool, bool) {
 	if len(path) > len(n.path) {
 		if !strings.EqualFold(path[:len(n.path)], n.path) {
@@ -763,6 +969,16 @@ func (n *node) find(path string, buf *bytebufferpool.ByteBuffer) (bool, bool) {
 	return false, false
 }
 
+// findFromChild traverses the child nodes to find a matching path segment
+// and appends the successfully matched segment to the provided buffer.
+//
+// Parameters:
+//   - path (string): The path segment to match against the child nodes.
+//   - buf (*bytebufferpool.ByteBuffer): The buffer to append matched path segments.
+//
+// Returns:
+//   - (bool): Indicates whether a match was found for the path segment.
+//   - (bool): Indicates whether a trailing slash redirect (TSR) is required.
 func (n *node) findFromChild(path string, buf *bytebufferpool.ByteBuffer) (bool, bool) {
 	for _, child := range n.children {
 		switch child.nType {
@@ -827,7 +1043,8 @@ func (n *node) findFromChild(path string, buf *bytebufferpool.ByteBuffer) (bool,
 	return false, false
 }
 
-// sort sorts the current node and their children
+// sort recursively sorts the current node and its children nodes
+// in order based on type and their children count (using `Less` function).
 func (n *node) sort() {
 	for _, child := range n.children {
 		child.sort()
@@ -836,17 +1053,32 @@ func (n *node) sort() {
 	sort.Sort(n)
 }
 
-// Len returns the total number of children the node has
+// Len returns the total number of children nodes.
+//
+// Returns:
+//   - (int): The total count of child nodes.
 func (n *node) Len() int {
 	return len(n.children)
 }
 
-// Swap swaps the order of children nodes
+// Swap switches the order of two child nodes at the specified indices.
+//
+// Parameters:
+//   - i (int): The index of the first child node.
+//   - j (int): The index of the second child node.
 func (n *node) Swap(i, j int) {
 	n.children[i], n.children[j] = n.children[j], n.children[i]
 }
 
-// Less checks if the node 'i' has less priority than the node 'j'
+// Less determines if child node at index `i` has less priority than the child node at index `j`.
+// The priority is determined first by node type and, if equal, by the number of children.
+//
+// Parameters:
+//   - i (int): The index of the first child node to compare.
+//   - j (int): The index of the second child node to compare.
+//
+// Returns:
+//   - (bool): `true` if the child node at index `i` has less priority than the one at index `j`, `false` otherwise.
 func (n *node) Less(i, j int) bool {
 	if n.children[i].nType < n.children[j].nType {
 		return true

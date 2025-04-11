@@ -1,17 +1,32 @@
 package core
 
 // MiddlewareHandler must return RequestHandler for continuing or error to stop on it.
+// It is a function type that takes a context object and processes it.
 type MiddlewareHandler func(ctx *Ctx) error
 
-// IMiddleware Middleware interface
+// IMiddleware Middleware interface defines the contract for grouping middleware functions.
 type IMiddleware interface {
+	// Group groups multiple MiddlewareHandler functions together and returns a function
+	// which wraps an IHandler with the middleware functionalities.
+	//
+	// Parameters:
+	//   - middlewares: Variadic parameter accepting multiple MiddlewareHandler functions.
+	//
+	// Returns:
+	//   - A function that takes an IHandler and returns a wrapped IHandler with the applied middlewares.
 	Group(middlewares ...MiddlewareHandler) func(IHandler) IHandler
 }
 
-// Middleware Middleware type
+// Middleware represents a struct implementing the IMiddleware interface.
 type Middleware struct{}
 
-// Group Create a group Middleware functions. Implement for IMiddleware interface
+// Group Create a group of Middleware functions. Implements the Group method for the IMiddleware interface.
+//
+// Parameters:
+//   - middlewares: Variadic parameter accepting multiple MiddlewareHandler functions.
+//
+// Returns:
+//   - A function that takes an IHandler and returns a wrapped IHandler with the applied middlewares.
 func (m *Middleware) Group(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
 	return func(handler IHandler) IHandler {
 		return &middlewareEndpoint{
@@ -22,14 +37,20 @@ func (m *Middleware) Group(middlewares ...MiddlewareHandler) func(IHandler) IHan
 }
 
 // middlewareEndpoint Default handler
-// Need to wrap middleware as a implementation of IHandler interface
+// Wraps middleware as an implementation of the IHandler interface
 type middlewareEndpoint struct {
 	Endpoint
 	handler     IHandler
 	middlewares []MiddlewareHandler
 }
 
-// Handle check handler validation
+// Handle processes the middleware stack and executes the contained handler.
+//
+// Parameters:
+//   - c: A pointer to the Ctx object representing the context of the current request.
+//
+// Returns:
+//   - An error if any middleware or handler validation fails; otherwise, nil.
 func (m *middlewareEndpoint) Handle(c *Ctx) error {
 	// Run middleware functions
 	for _, m := range m.middlewares {
@@ -48,6 +69,10 @@ func (m *middlewareEndpoint) Handle(c *Ctx) error {
 	return m.handler.Handle(c)
 }
 
+// NewMiddleware creates a new instance of Middleware.
+//
+// Returns:
+//   - An object implementing the IMiddleware interface.
 func NewMiddleware() IMiddleware {
 	return &Middleware{}
 }

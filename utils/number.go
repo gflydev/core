@@ -5,7 +5,13 @@ import (
 	"math/big"
 )
 
-// RandInt64 Generate a random number Int64 in rang [0, max)
+// RandInt64 generates a cryptographically secure random integer within the range [0, m).
+//
+// Parameters:
+//   - m int64: The upper limit (exclusive) for the random integer.
+//
+// Returns:
+//   - int64: A random integer within the specified range.
 //
 // NOTE:
 //

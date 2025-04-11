@@ -2,8 +2,10 @@ module examples
 
 go 1.24.0
 
+replace github.com/gflydev/core => ../
+
 require (
-	github.com/gflydev/core v1.11.3
+	github.com/gflydev/core v1.12.1
 	github.com/joho/godotenv v1.5.1
 )
 

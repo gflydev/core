@@ -6,12 +6,21 @@ import (
 	"strconv"
 )
 
-// Getenv Get environment parameter (From .env file).
+// Getenv retrieves an environment variable and parses it into the specified type,
+// falling back to a default value if the variable is not found.
+//
+// Parameters:
+//   - key (string): The name of the environment variable.
+//   - init (V): The default value to use if the environment variable is not set.
+//
+// Returns:
+//   - V: The value of the environment variable parsed into the specified type,
+//     or the default value if the variable is not found.
 func Getenv[V any](key string, init V) V {
-	// Create out any type and assign initial value
+	// Create a variable of "any" type and assign it the initial value
 	var out any = init
 
-	// Try to get parameter
+	// Try to retrieve the parameter from the environment
 	if value, ok := os.LookupEnv(key); ok {
 		switch reflect.TypeOf(init).Name() {
 		case "string":
@@ -35,6 +44,6 @@ func Getenv[V any](key string, init V) V {
 		}
 	}
 
-	// Important! Type assertion
+	// Perform type assertion and return the result
 	return out.(V)
 }

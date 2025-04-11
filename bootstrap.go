@@ -9,27 +9,32 @@ import (
 	"path/filepath"
 )
 
-// ===========================================================================================================
-//                                                Bootstrap
-// ===========================================================================================================
+// ====================================================================
+//                              Bootstrap
+// ====================================================================
 
-// startupMessage Startup message.
+// startupMessage prints the application startup message to the logs.
+//
+// Parameters:
+//   - url (string): The server URL the application is running on.
+//   - name (string): The name of the application.
+//   - env (string): The application's runtime environment (e.g., development, production).
 func startupMessage(url, name, env string) {
 	log.Info("-------------------------------------------")
-	log.Info(fmt.Sprintf("       ---- _=| gFly %s |=_ ----       ", Version))
-	log.Info("       Laravel inspired web framework      ")
+	log.Info(fmt.Sprintf("	   ---- _=| gFly %s |=_ ----	   ", Version))
+	log.Info("	   Laravel inspired web framework	  ")
 	log.Info("-------------------------------------------")
 	log.Infof("   * Server: %s", url)
 	log.Infof("   * App Name: %s", name)
 	log.Infof("   * Environment: %s", env)
 }
 
-// ===========================================================================================================
-//                                                   Logs
-// ===========================================================================================================
+// ====================================================================
+//                                 Logs
+// ====================================================================
 
-// serveFiles Serve static files from the given file system root is `./public`
-// You can change parameter name STATIC_PATH.
+// setupLog configures the log output destination and log level
+// based on environment variables.
 func setupLog() {
 	logChannel := utils.Getenv("LOG_CHANNEL", "file")
 
@@ -64,12 +69,14 @@ func setupLog() {
 	log.Trace("Setup Logs")
 }
 
-// ===========================================================================================================
-//                                             Serve Static File
-// ===========================================================================================================
+// ====================================================================
+//                           Serve Static File
+// ====================================================================
 
-// serveFiles Serve static files from the given file system root is `./public`
-// You can change parameter name STATIC_PATH.
+// serveFiles configures static file serving for the application.
+//
+// Parameters:
+//   - fly (*GFly): The instance of GFly which contains the router used to serve the static files.
 func serveFiles(fly *GFly) {
 	// Default static file path
 	rootPath := utils.Getenv("STATIC_PATH", "public")

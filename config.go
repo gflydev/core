@@ -3,166 +3,160 @@ package core
 import "time"
 
 type Config struct {
-	// App name
+	// AppName specifies the application name.
 	//
-	// Default app name is used if left blank.
+	// Default: "Laravel inspired web framework written in Go".
 	AppName string
 
-	// Server name for sending in response headers.
+	// Name specifies the server name for sending in response headers.
 	//
-	// Default server name is used if left blank.
+	// Default: "gFly".
 	Name string
 
+	// Concurrency defines the maximum number of concurrent connections the server may serve.
 	// The maximum number of concurrent connections the server may serve.
 	//
 	// DefaultConcurrency is used if not set.
 	//
 	// Concurrency only works if you either call Serve once, or only ServeConn multiple times.
 	// It works with ListenAndServe as well.
+	// Default: 256 * 1024.
 	Concurrency int
 
-	// ReadTimeout is the amount of time allowed to read
-	// the full request including body. The connection's read
-	// deadline is reset when the connection opens, or for
-	// keep-alive connections after the first byte has been read.
+	// ReadTimeout specifies the maximum duration allowed to read the full request, including the body.
+	// The connection's read deadline is reset when a connection opens or for keep-alive connections,
+	// after the first byte has been read.
 	//
-	// By default request read timeout is unlimited.
+	// Default: 60 minutes.
 	ReadTimeout time.Duration
 
-	// WriteTimeout is the maximum duration before timing out
-	// writes of the response. It is reset after the request handler
-	// has returned.
+	// WriteTimeout specifies the maximum duration before timing out writes of the response.
+	// It is reset after the request handler has returned.
 	//
-	// By default response write timeout is unlimited.
+	// Default: 60 minutes.
 	WriteTimeout time.Duration
 
-	// IdleTimeout is the maximum amount of time to wait for the
-	// next request when keep-alive is enabled. If IdleTimeout
-	// is zero, the value of ReadTimeout is used.
+	// IdleTimeout defines the maximum duration to wait for the next request when keep-alive is enabled.
+	// If IdleTimeout is zero, the value of ReadTimeout is used.
+	//
+	// Default: 60 minutes.
 	IdleTimeout time.Duration
 
-	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size.
+	// ReadBufferSize specifies the buffer size for request reading, which also limits the maximum header size.
+	// Increase this buffer if clients send large RequestURIs or headers.
 	//
-	// Increase this buffer if your clients send multi-KB RequestURIs
-	// and/or multi-KB headers (for example, BIG cookies).
-	//
-	// Default buffer size is used if not set.
+	// Default: 40,960 bytes.
 	ReadBufferSize int
 
-	// Per-connection buffer size for responses' writing.
+	// WriteBufferSize specifies the buffer size for response writing.
 	//
-	// Default buffer size is used if not set.
+	// Default: 40,960 bytes.
 	WriteBufferSize int
 
-	// NoDefaultDate, when set to true, causes the default Date
-	// header to be excluded from the Response.
+	// NoDefaultDate determines whether the default "Date" header should be excluded from the response.
 	//
-	// The default Date header value is the current date value. When
-	// set to true, the Date will not be present.
+	// Default: false.
 	NoDefaultDate bool
 
-	// NoDefaultContentType, when set to true, causes the default Content-Type
-	// header to be excluded from the Response.
+	// NoDefaultContentType determines whether the default "Content-Type" header should be excluded from the response.
 	//
-	// The default Content-Type header value is the internal default value. When
-	// set to true, the Content-Type will not be present.
+	// Default: false.
 	NoDefaultContentType bool
 
-	// Header names are passed as-is without normalization
-	// if this option is set.
+	// DisableHeaderNamesNormalizing determines whether header names should be passed as-is without normalization.
+	// By default, header names are normalized.
 	//
-	// Disabled header names' normalization may be useful only for proxying
-	// incoming requests to other servers expecting case-sensitive
-	// header names. See https://github.com/valyala/fasthttp/issues/57
-	// for details.
-	//
-	// By default request and response header names are normalized, i.e.
-	// The first letter and the first letters following dashes
-	// are uppercased, while all the other letters are lowercased.
-	// Examples:
-	//
-	//     * HOST -> Host
-	//     * content-type -> Content-Type
-	//     * cONTENT-lenGTH -> Content-Length
+	// Default: false.
 	DisableHeaderNamesNormalizing bool
 
-	// Whether to disable keep-alive connections.
+	// DisableKeepalive indicates whether to disable keep-alive connections.
 	//
-	// The server will close all the incoming connections after sending
-	// the first response to client if this option is set to true.
-	//
-	// By default keep-alive connections are enabled.
+	// Default: false.
 	DisableKeepalive bool
 
-	// Maximum request body size.
-	// a zero value means that default values will be honored
+	// MaxRequestBodySize specifies the maximum size of the request body.
+	// A zero value means the default value will be honored.
+	//
+	// Default: 4 MB.
 	MaxRequestBodySize int
 
-	// NoDefaultServerHeader, when set to true, causes the default Server header
-	// to be excluded from the Response.
+	// NoDefaultServerHeader determines whether the default "Server" header should be excluded from the response.
 	//
-	// The default Server header value is the value of the Name field or an
-	// internal default value in its absence. With this option set to true,
-	// the only time a Server header will be sent is if a non-zero length
-	// value is explicitly provided during a request.
+	// Default: false.
 	NoDefaultServerHeader bool
 
-	// Rejects all non-GET requests if set to true.
+	// GetOnly rejects all non-GET requests if set to true. Useful as anti-DoS protection for servers
+	// that only accept GET and HEAD requests. Request size is limited by ReadBufferSize when enabled.
 	//
-	// This option is useful as anti-DoS protection for servers
-	// accepting only GET requests and HEAD requests. The request size is limited
-	// by ReadBufferSize if GetOnly is set.
-	//
-	// Server accepts all the requests by default.
+	// Default: false.
 	GetOnly bool
 
-	// Aggressively reduces memory usage at the cost of higher CPU usage
-	// if set to true.
+	// ReduceMemoryUsage aggressively reduces memory usage at the cost of higher CPU usage.
+	// Only enable if serving mostly idle keep-alive connections.
 	//
-	// Try enabling this option only if the server consumes too much memory
-	// serving mostly idle keep-alive connections. This may reduce memory
-	// usage by more than 50%.
-	//
-	// Aggressive memory usage reduction is disabled by default.
+	// Default: false.
 	ReduceMemoryUsage bool
 
-	// StreamRequestBody enables request body streaming,
-	// and calls the handler sooner when given body is
-	// larger than the current limit.
+	// StreamRequestBody enables request body streaming and calls the handler sooner
+	// when the body exceeds the current limit.
+	//
+	// Default: true.
 	StreamRequestBody bool
 
-	// Will not pre parse Multipart Form data if set to true.
+	// DisablePreParseMultipartForm determines whether to avoid pre-parsing multipart form data.
+	// Useful for treating multipart form data as binary or controlling when data is parsed.
 	//
-	// This option is useful for servers that desire to treat
-	// multipart form data as a binary blob, or choose when to parse the data.
-	//
-	// Server pre parses multipart form data by default.
+	// Default: true.
 	DisablePreParseMultipartForm bool
 
-	// When set to true, it will not print out the «gFly» ASCII art and listening address.
+	// DisableStartupMessage determines whether to suppress the printing of "gFly" ASCII art and listening address
+	// during startup.
 	//
-	// Default: false
+	// Default: false.
 	DisableStartupMessage bool
 
-	// Known networks are "tcp", "tcp4" (IPv4-only), "tcp6" (IPv6-only)
-	// WARNING: When prefork is set to true, only "tcp4" and "tcp6" can be chose.
+	// Network specifies the network type ("tcp", "tcp4", "tcp6").
+	// When prefork is true, only "tcp4" and "tcp6" are allowed.
 	//
-	// Default: NetworkTCP4
+	// Default: "tcp4".
 	Network string
 
-	// When set to true, this will spawn multiple Go processes listening on the same port.
+	// Prefork enables preforking with multiple Go processes listening on the same port.
 	//
-	// Default: false
+	// Default: false.
 	Prefork bool
 
-	// CompressedFileSuffix adds suffix to the original file name and
-	// tries saving the resulting compressed file under the new file name.
+	// CompressedFileSuffix specifies a suffix to the file name when saving the resulting compressed file.
 	//
-	// Default: ".gz"
+	// Default: ".gz".
 	CompressedFileSuffix string
 }
 
+// DefaultConfig holds the default configuration settings for the gFly framework.
+//
+// Fields:
+//   - AppName (string): Application name. Default: "Laravel inspired web framework written in Go".
+//   - Name (string): Server name for sending in response headers. Default: "gFly".
+//   - Concurrency (int): Maximum number of concurrent connections. Default: 256 * 1024.
+//   - ReadTimeout (time.Duration): Request read timeout. Default: 60 minutes.
+//   - WriteTimeout (time.Duration): Response write timeout. Default: 60 minutes.
+//   - IdleTimeout (time.Duration): Maximum time to wait for the next request when keep-alive is enabled. Default: 60 minutes.
+//   - ReadBufferSize (int): Buffer size for request reading. Default: 40,960 bytes.
+//   - WriteBufferSize (int): Buffer size for response writing. Default: 40,960 bytes.
+//   - NoDefaultDate (bool): Exclude default "Date" header from the response. Default: false.
+//   - NoDefaultContentType (bool): Exclude default "Content-Type" header from the response. Default: false.
+//   - DisableHeaderNamesNormalizing (bool): Disable normalization of header names. Default: false.
+//   - DisableKeepalive (bool): Disable keep-alive connections. Default: false.
+//   - MaxRequestBodySize (int): Maximum request body size. Default: 4 MB.
+//   - NoDefaultServerHeader (bool): Exclude default "Server" header from the response. Default: false.
+//   - GetOnly (bool): Reject all non-GET requests. Default: false.
+//   - ReduceMemoryUsage (bool): Reduce memory usage aggressively. Default: false.
+//   - StreamRequestBody (bool): Enable request body streaming for large requests. Default: true.
+//   - DisablePreParseMultipartForm (bool): Do not pre-parse multipart form data. Default: true.
+//   - DisableStartupMessage (bool): Do not print startup messages. Default: false.
+//   - Network (string): Network type ("tcp", "tcp4", "tcp6"). Default: "tcp4".
+//   - Prefork (bool): Enable prefork with multiple Go processes. Default: false.
+//   - CompressedFileSuffix (string): Suffix for compressed file names. Default: ".gz".
 var DefaultConfig = Config{
 	AppName:                       "Laravel inspired web framework written in Go",
 	Name:                          "gFly",

@@ -14,73 +14,87 @@ import (
 var _ AllLogger = (*defaultLogger)(nil)
 
 type defaultLogger struct {
-	stdLog *log.Logger
-	level  Level
-	depth  int
+	stdLog *log.Logger // The underlying standard logger used for output
+	level  Level       // The current log level
+	depth  int         // The call depth for logging
 }
 
-// privateLog logs a message at a given level log the default logger.
-// when the level is fatal, it will exit the program.
+// privateLog logs a message at a given level using the default logger. It uses a buffer pool to optimize memory usage.
+// Parameters:
+//   - lv: The logging level of the message.
+//   - fmtArgs: The arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
 	if l.level > lv {
 		return
 	}
 	level := lv.toString()
-	buf := bytebufferpool.Get()
+	buf := bytebufferpool.Get()     // Borrow a buffer from the bytebufferpool
 	_, _ = buf.WriteString(level)   // It is fine to ignore the error
 	_, _ = fmt.Fprint(buf, fmtArgs) // It is fine to ignore the error
 
-	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
-	buf.Reset()
-	bytebufferpool.Put(buf)
+	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
+	buf.Reset()                                // Reset the buffer for reuse
+	bytebufferpool.Put(buf)                    // Return the buffer to the pool
 	if lv == LevelFatal {
-		os.Exit(1) //nolint:revive // we want to exit the program when Fatal is called
+		os.Exit(1) // Terminates the program if the level is fatal
 	}
 }
 
-// privateLog logs a message at a given level log the default logger.
-// when the level is fatal, it will exit the program.
+// privateLogf logs a formatted message at a given level using the default logger. It supports format specifiers.
+// Parameters:
+//   - lv: The logging level of the message.
+//   - format: The format string for the message.
+//   - fmtArgs: The arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface{}) {
 	if l.level > lv {
 		return
 	}
 	level := lv.toString()
-	buf := bytebufferpool.Get()
-	_, _ = buf.WriteString(level) //nolint:errcheck // It is fine to ignore the error
+	buf := bytebufferpool.Get()   // Borrow a buffer from the bytebufferpool
+	_, _ = buf.WriteString(level) // It is fine to ignore the error
 
 	if len(fmtArgs) > 0 {
 		_, _ = fmt.Fprintf(buf, format, fmtArgs...)
 	} else {
 		_, _ = fmt.Fprint(buf, fmtArgs...)
 	}
-	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
-	buf.Reset()
-	bytebufferpool.Put(buf)
+	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
+	buf.Reset()                                // Reset the buffer for reuse
+	bytebufferpool.Put(buf)                    // Return the buffer to the pool
 	if lv == LevelFatal {
-		os.Exit(1) //nolint:revive // we want to exit the program when Fatal is called
+		os.Exit(1) // Terminates the program if the level is fatal
 	}
 }
 
-// privateLogw logs a message at a given level log the default logger.
-// when the level is fatal, it will exit the program.
+// privateLogw logs a message with additional key-value pairs at a given level using the default logger.
+// Parameters:
+//   - lv: The logging level of the message.
+//   - format: An optional format string for the message.
+//   - keysAndValues: Key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []interface{}) {
 	if l.level > lv {
 		return
 	}
 	level := lv.toString()
-	buf := bytebufferpool.Get()
-	_, _ = buf.WriteString(level) //nolint:errcheck // It is fine to ignore the error
+	buf := bytebufferpool.Get()   // Borrow a buffer from the bytebufferpool
+	_, _ = buf.WriteString(level) // It is fine to ignore the error
 
-	// Write format privateLog buffer
+	// Write the format string to the buffer if provided
 	if format != "" {
-		_, _ = buf.WriteString(format) //nolint:errcheck // It is fine to ignore the error
+		_, _ = buf.WriteString(format) // It is fine to ignore the error
 	}
 	var once sync.Once
 	isFirst := true
-	// Write keys and values privateLog buffer
+	// Write the key-value pairs to the buffer
 	if len(keysAndValues) > 0 {
-		if (len(keysAndValues) & 1) == 1 {
-			keysAndValues = append(keysAndValues, "KEYVALS UNPAIRED")
+		if (len(keysAndValues) & 1) == 1 { // Check for unpaired key-value
+			keysAndValues = append(keysAndValues, "KEYVALS UNPAIRED") // Add placeholder for missing value
 		}
 
 		for i := 0; i < len(keysAndValues); i += 2 {
@@ -95,115 +109,251 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 		}
 	}
 
-	_ = l.stdLog.Output(l.depth, buf.String()) //nolint:errcheck // It is fine to ignore the error
-	buf.Reset()
-	bytebufferpool.Put(buf)
+	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
+	buf.Reset()                                // Reset the buffer for reuse
+	bytebufferpool.Put(buf)                    // Return the buffer to the pool
 	if lv == LevelFatal {
-		os.Exit(1) //nolint:revive // we want to exit the program when Fatal is called
+		os.Exit(1) // Terminates the program if the level is fatal
 	}
 }
 
+// Trace logs a message at the Trace level.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Trace(v ...interface{}) {
 	l.privateLog(LevelTrace, v)
 }
 
+// Debug logs a message at the Debug level.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Debug(v ...interface{}) {
 	l.privateLog(LevelDebug, v)
 }
 
+// Info logs a message at the Info level.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Info(v ...interface{}) {
 	l.privateLog(LevelInfo, v)
 }
 
+// Warn logs a message at the Warn level.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Warn(v ...interface{}) {
 	l.privateLog(LevelWarn, v)
 }
 
+// Error logs a message at the Error level.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Error(v ...interface{}) {
 	l.privateLog(LevelError, v)
 }
 
+// Fatal logs a message at the Fatal level and terminates the program.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Fatal(v ...interface{}) {
 	l.privateLog(LevelFatal, v)
 }
 
+// Panic logs a message at the Panic level and then panics.
+// Parameters:
+//   - v: Variadic arguments to be logged.
+//
+// Returns: None
 func (l *defaultLogger) Panic(v ...interface{}) {
 	l.privateLog(LevelPanic, v)
 }
 
+// Tracef logs a formatted message at the Trace level.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Tracef(format string, v ...interface{}) {
 	l.privateLogf(LevelTrace, format, v)
 }
 
+// Debugf logs a formatted message at the Debug level.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Debugf(format string, v ...interface{}) {
 	l.privateLogf(LevelDebug, format, v)
 }
 
+// Infof logs a formatted message at the Info level.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Infof(format string, v ...interface{}) {
 	l.privateLogf(LevelInfo, format, v)
 }
 
+// Warnf logs a formatted message at the Warn level.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Warnf(format string, v ...interface{}) {
 	l.privateLogf(LevelWarn, format, v)
 }
 
+// Errorf logs a formatted message at the Error level.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Errorf(format string, v ...interface{}) {
 	l.privateLogf(LevelError, format, v)
 }
 
+// Fatalf logs a formatted message at the Fatal level and terminates the program.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Fatalf(format string, v ...interface{}) {
 	l.privateLogf(LevelFatal, format, v)
 }
 
+// Panicf logs a formatted message at the Panic level and then panics.
+// Parameters:
+//   - format: The format string for the message.
+//   - v: Variadic arguments for the format string.
+//
+// Returns: None
 func (l *defaultLogger) Panicf(format string, v ...interface{}) {
 	l.privateLogf(LevelPanic, format, v)
 }
 
+// Tracew logs a message at the Trace level with additional key-value pairs.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Tracew(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelTrace, msg, keysAndValues)
 }
 
+// Debugw logs a message at the Debug level with additional key-value pairs.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Debugw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelDebug, msg, keysAndValues)
 }
 
+// Infow logs a message at the Info level with additional key-value pairs.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Infow(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelInfo, msg, keysAndValues)
 }
 
+// Warnw logs a message at the Warn level with additional key-value pairs.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Warnw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelWarn, msg, keysAndValues)
 }
 
+// Errorw logs a message at the Error level with additional key-value pairs.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Errorw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelError, msg, keysAndValues)
 }
 
+// Fatalw logs a message at the Fatal level with additional key-value pairs and terminates the program.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Fatalw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelFatal, msg, keysAndValues)
 }
 
+// Panicw logs a message at the Panic level with additional key-value pairs and then panics.
+// Parameters:
+//   - msg: The message to be logged.
+//   - keysAndValues: Variadic key-value pairs to include in the log.
+//
+// Returns: None
 func (l *defaultLogger) Panicw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelPanic, msg, keysAndValues)
 }
 
+// WithContext creates a new logger with a modified call depth. This is useful for logging with context.
+// Parameters:
+//   - _ (context.Context): The context to associate with the logger (ignored in this implementation).
+//
+// Returns: (CommonLogger) A new logger instance with adjusted depth.
 func (l *defaultLogger) WithContext(_ context.Context) CommonLogger {
 	return &defaultLogger{
-		stdLog: l.stdLog,
-		level:  l.level,
-		depth:  l.depth - 1,
+		stdLog: l.stdLog,    // The underlying standard logger for output.
+		level:  l.level,     // The current log level to preserve settings.
+		depth:  l.depth - 1, // Adjusted call depth for logging.
 	}
 }
 
+// SetLevel sets the logging level for the logger.
+// Parameters:
+//   - level (Level): The desired logging level to set.
+//
+// Returns: None
 func (l *defaultLogger) SetLevel(level Level) {
 	l.level = level
 }
 
+// SetOutput sets the output destination for the logger.
+// Parameters:
+//   - writer (io.Writer): The destination to write log output to.
+//
+// Returns: None
 func (l *defaultLogger) SetOutput(writer io.Writer) {
 	l.stdLog.SetOutput(writer)
 }
 
-// DefaultLogger returns the default logger.
+// DefaultLogger returns the default logger instance.
+// Parameters: None
+// Returns: (AllLogger) The default logger instance.
 func DefaultLogger() AllLogger {
 	return logger
 }

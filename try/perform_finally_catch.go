@@ -19,6 +19,8 @@ type (
 )
 
 // Throw function (return or rethrow an exception)
+// Parameters:
+//   - e: The error to be thrown. If nil, a default panic with RethrowPanic value is thrown.
 func Throw(e E) {
 	// Throw default error
 	if e == nil {
@@ -29,7 +31,12 @@ func Throw(e E) {
 	}
 }
 
-// Perform register the main-logic function.
+// Perform registers the main-logic function and executes it.
+// Parameters:
+//   - funcToTry: The main logic to execute within the try block.
+//
+// Returns:
+//   - *It: An instance of the It structure containing the result and error (if any).
 func Perform(funcToTry F) (o *It) {
 	// Initial exception object with null values
 	o = &It{nil, nil}
@@ -46,7 +53,12 @@ func Perform(funcToTry F) (o *It) {
 	return
 }
 
-// Finally register the finally-logic function.
+// Finally registers the finally-logic function that is executed at the end of the try-catch block.
+// Parameters:
+//   - finallyFunc: The function containing cleanup or finalization logic to be executed.
+//
+// Returns:
+//   - *It: The same instance of the It structure for chaining.
 func (o *It) Finally(finallyFunc F) *It {
 	if o.finally != nil {
 		panic("Finally Function by default !!")
@@ -57,7 +69,12 @@ func (o *It) Finally(finallyFunc F) *It {
 	return o
 }
 
-// Catch register the finally-logic function.
+// Catch registers the error-handling function that is executed if an error occurs.
+// Parameters:
+//   - funcCaught: The function to handle the error, which receives the error as a parameter.
+//
+// Returns:
+//   - *It: The same instance of the It structure for chaining.
 func (o *It) Catch(funcCaught EF) *It {
 	// Check if it has Error
 	if o.Error != nil {

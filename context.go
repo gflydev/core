@@ -15,84 +15,179 @@ import (
 	"time"
 )
 
-// ===========================================================================================================
-// 												Context
-// ===========================================================================================================
+// ====================================================================
+//                               Context
+// ====================================================================
 
 // Ctx HTTP request context
 type Ctx struct {
-	app    *GFly                // Reference to gFly
-	root   *fasthttp.RequestCtx // Reference to root request context of fasthttp.
-	router *Router              // Reference to Router.
-	data   Data                 // Keep data in request context.
+	app    *GFly                // Reference to gFly application.
+	root   *fasthttp.RequestCtx // Reference to the root request context of fasthttp.
+	router *Router              // Reference to the router.
+	data   Data                 // Data holds request context data.
 }
 
-// Root Get original HTTP request context.
+// Root returns the original HTTP request context from fasthttp.
+//
+// Returns:
+//   - *fasthttp.RequestCtx: The root HTTP request context.
 func (c *Ctx) Root() *fasthttp.RequestCtx {
 	return c.root
 }
 
-// Router Get original Router.
+// Router returns the original router associated with the context.
+//
+// Returns:
+//   - *Router: The router instance associated with the current request context.
 func (c *Ctx) Router() *Router {
 	return c.router
 }
 
-// ===========================================================================================================
-// 										Ctx - Handler
-// ===========================================================================================================
+// ====================================================================
+//                         Ctx - Header
+// ====================================================================
 
-// RequestHandler A wrapper of fasthttp.RequestHandler
+// RequestHandler A wrapper of fasthttp.RequestHandler.
+//
+// Parameters:
+//   - ctx (*Ctx): The current HTTP request context.
+//
+// Returns:
+//   - error: An error if the handling fails, otherwise nil.
 type RequestHandler func(ctx *Ctx) error
 
-// IHandler Interface a handler request.
+// IHandler Interface for a handler request.
 type IHandler interface {
+	// Validate validates the request context.
+	//
+	// Parameters:
+	//   - c (*Ctx): The current HTTP request context.
+	//
+	// Returns:
+	//   - error: An error if validation fails, otherwise nil.
 	Validate(c *Ctx) error
+
+	// Handle handles the request context.
+	//
+	// Parameters:
+	//   - c (*Ctx): The current HTTP request context.
+	//
+	// Returns:
+	//   - error: An error if handling fails, otherwise nil.
 	Handle(c *Ctx) error
 }
 
-// Endpoint Default handler
+// Endpoint Default handler.
+//
+// Implements:
+//   - Validate: A no-op validation method.
+//   - Handle: A no-op handling method.
 type Endpoint struct{}
 
+// Validate validates the request context.
+//
+// Parameters:
+//   - c (*Ctx): The current HTTP request context.
+//
+// Returns:
+//   - error: Always nil (no validation logic implemented).
 func (e *Endpoint) Validate(c *Ctx) error {
 	return nil
 }
 
+// Handle handles the request context.
+//
+// Parameters:
+//   - c (*Ctx): The current HTTP request context.
+//
+// Returns:
+//   - error: Always nil (no handling logic implemented).
 func (e *Endpoint) Handle(c *Ctx) error {
 	return nil
 }
 
-// Page Abstract web page
+// Page Abstract web page.
+//
+// Inherits:
+//   - Endpoint: Base endpoint for page handling logic.
 type Page struct {
 	Endpoint
 }
 
-// Api Abstract api
+// Api Abstract API.
+//
+// Inherits:
+//   - Endpoint: Base endpoint for API handling logic.
 type Api struct {
 	Endpoint
 }
 
-// ===========================================================================================================
-// 										Ctx - Header Data
-// ===========================================================================================================
+// ====================================================================
+//                         Ctx - Header Data
+// ====================================================================
 
 type IHeader interface {
-	// Status sets the response's HTTP code.
+	// Status sets the response's HTTP status code.
+	//
+	// Parameters:
+	//   - code (int): The HTTP status code to set.
+	//
+	// Returns:
+	//   - *Ctx: The current HTTP context.
 	Status(code int) *Ctx
 	// ContentType sets the response's HTTP content type.
+	//
+	// Parameters:
+	//   - mime (string): The content type to set.
+	//
+	// Returns:
+	//   - *Ctx: The current HTTP context.
 	ContentType(mime string) *Ctx
-	// SetHeader sets the response's HTTP header field to the specified key, value.
+	// SetHeader sets the response's HTTP header field with the specified key and value.
+	//
+	// Parameters:
+	//   - key (string): The header key.
+	//   - val (string): The header value.
+	//
+	// Returns:
+	//   - *Ctx: The current HTTP context.
 	SetHeader(key, val string) *Ctx
-	// SetCookie set cookie to the response's HTTP header.
+	// SetCookie sets a cookie in the response's HTTP header.
+	//
+	// Parameters:
+	//   - key (string): The cookie name.
+	//   - value (string): The cookie value.
+	//
+	// Returns:
+	//   - *Ctx: The current HTTP context.
 	SetCookie(key, value string) *Ctx
-	// GetCookie get cookie from the request's HTTP header.
+	// GetCookie retrieves a cookie value from the request's HTTP header.
+	//
+	// Parameters:
+	//   - key (string): The name of the cookie.
+	//
+	// Returns:
+	//   - string: The value of the cookie; an empty string if not found.
 	GetCookie(key string) string
-	// GetReqHeaders returns the HTTP request headers.
+	// GetReqHeaders returns all HTTP request headers.
+	//
+	// Returns:
+	//   - map[string][]string: A map of header keys and their respective values.
 	GetReqHeaders() map[string][]string
-	// Path returns path URI
+	// Path retrieves the URI path of the current request.
+	//
+	// Returns:
+	//   - string: The URI path as a string.
 	Path() string
 }
 
-// Status sets the response's HTTP code.
+// Status sets the response's HTTP status code.
+//
+// Parameters:
+//   - code (int): The HTTP status code to set.
+//
+// Returns:
+//   - *Ctx: The current HTTP context.
 func (c *Ctx) Status(code int) *Ctx {
 	c.root.Response.SetStatusCode(code)
 
@@ -100,20 +195,40 @@ func (c *Ctx) Status(code int) *Ctx {
 }
 
 // ContentType sets the response's HTTP content type.
+//
+// Parameters:
+//   - mime (string): The content type to set.
+//
+// Returns:
+//   - *Ctx: The current HTTP context.
 func (c *Ctx) ContentType(mime string) *Ctx {
 	c.root.Response.Header.SetContentType(mime)
 
 	return c
 }
 
-// SetHeader sets the response's HTTP header field to the specified key, value.
+// SetHeader sets the response's HTTP header field with the specified key and value.
+//
+// Parameters:
+//   - key (string): The header key.
+//   - val (string): The header value.
+//
+// Returns:
+//   - *Ctx: The current HTTP context.
 func (c *Ctx) SetHeader(key, val string) *Ctx {
 	c.root.Response.Header.Set(key, val)
 
 	return c
 }
 
-// SetCookie set cookie to the response's HTTP header.
+// SetCookie sets a cookie in the response's HTTP header.
+//
+// Parameters:
+//   - key (string): The cookie name.
+//   - value (string): The cookie value.
+//
+// Returns:
+//   - *Ctx: The current HTTP context.
 func (c *Ctx) SetCookie(key, value string) *Ctx {
 	cook := fasthttp.Cookie{}
 	cook.SetKey(key)
@@ -125,14 +240,21 @@ func (c *Ctx) SetCookie(key, value string) *Ctx {
 	return c
 }
 
-// GetCookie get cookie from the request's HTTP header.
+// GetCookie retrieves a cookie value from the request's HTTP header.
+//
+// Parameters:
+//   - key (string): The name of the cookie.
+//
+// Returns:
+//   - string: The value of the cookie; an empty string if not found.
 func (c *Ctx) GetCookie(key string) string {
 	return string(c.root.Request.Header.Cookie(key))
 }
 
-// GetReqHeaders returns the HTTP request headers.
-// Returned value is only valid within the handler. Do not store any references.
-// Make copies or use the Immutable setting instead.
+// GetReqHeaders returns all HTTP request headers.
+//
+// Returns:
+//   - map[string][]string: A map of header keys and their respective values.
 func (c *Ctx) GetReqHeaders() map[string][]string {
 	headers := make(map[string][]string)
 	c.root.Request.Header.VisitAll(func(k, v []byte) {
@@ -143,62 +265,170 @@ func (c *Ctx) GetReqHeaders() map[string][]string {
 	return headers
 }
 
-// Path returns path URI
+// Path retrieves the URI path of the current request.
+//
+// Returns:
+//   - string: The URI path as a string.
 func (c *Ctx) Path() string {
 	return string(c.root.URI().Path())
 }
 
-// ===========================================================================================================
-// 										Ctx - Request Data
-// ===========================================================================================================
+// ====================================================================
+//                         Ctx - Request Data
+// ====================================================================
 
 type IResponse interface {
-	// Success Response success JSON data.
+	// Success sends a successful JSON response.
+	//
+	// Parameters:
+	//   - data (interface{}): The data to include in the JSON response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	Success(data interface{}) error
-	// Error Response error JSON data.
+
+	// Error sends an error JSON response.
+	//
+	// Parameters:
+	//   - data (interface{}): The data to include in the JSON response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	Error(data interface{}) error
-	// NoContent Response no content.
+
+	// NoContent sends a response with no content.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	NoContent() error
-	// View Load template page.
+
+	// View renders and sends a template page response.
+	//
+	// Parameters:
+	//   - template (string): The name or path of the template to render.
+	//   - data (Data): The data to inject into the template.
+	//
+	// Returns:
+	//   - error: An error if template rendering or response generation fails, otherwise nil.
 	View(template string, data Data) error
-	// JSON sets the HTTP response body for JSON type.
+
+	// JSON sends a JSON response.
+	//
+	// Parameters:
+	//   - data (JsonData): The data to include in the JSON response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	JSON(data JsonData) error
-	// HTML sets the HTTP response body for HTML type.
+
+	// HTML sends an HTML response.
+	//
+	// Parameters:
+	//   - body (string): The HTML content to include in the response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	HTML(body string) error
-	// String sets the HTTP response body for String type.
+
+	// String sends a plain text response.
+	//
+	// Parameters:
+	//   - body (string): The plain text content to include in the response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	String(body string) error
-	// Raw sets the HTTP response body without copying it.
+
+	// Raw sends a raw byte response.
+	//
+	// Parameters:
+	//   - body ([]byte): The raw byte content to include in the response.
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	Raw(body []byte) error
-	// Stream sets response body stream and optional body size.
+
+	// Stream sends a streaming response.
+	//
+	// Parameters:
+	//   - stream (io.Reader): The data stream to send in the response.
+	//   - size (...int): Optional body size for the stream (default: -1 for unknown size).
+	//
+	// Returns:
+	//   - error: An error if the response generation fails, otherwise nil.
 	Stream(stream io.Reader, size ...int) error
-	// Redirect Send redirect.
+
+	// Redirect sends a redirect response.
+	//
+	// Parameters:
+	//   - path (string): The URL path or full URL to redirect to.
+	//
+	// Returns:
+	//   - error: An error if the redirect fails, otherwise nil.
 	Redirect(path string) error
-	// Download transfers the file from path as an attachment.
+
+	// Download sends a file as an attachment.
+	//
+	// Parameters:
+	//   - file (string): The path of the file to send.
+	//   - filename (...string): Optional custom filename for the attachment.
+	//
+	// Returns:
+	//   - error: An error if the file transfer fails, otherwise nil.
 	Download(file string, filename ...string) error
-	// File transfers the file from the given path.
+
+	// File sends a file as a response.
+	//
+	// Parameters:
+	//   - file (string): The path of the file to send.
+	//   - compress (...bool): Optional compression flag (default: false).
+	//
+	// Returns:
+	//   - error: An error if the file transfer fails, otherwise nil.
 	File(file string, compress ...bool) error
 }
 
-// Success Response success JSON data.
+// Success sends a successful JSON response.
+//
+// Parameters:
+//   - data (interface{}): The data to include in the JSON response.
+//
+// Returns:
+//   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) Success(data interface{}) error {
 	c.root.Response.SetStatusCode(StatusOK)
 	return c.JSON(data)
 }
 
-// Error Response error JSON data.
+// Error sends an error JSON response.
+//
+// Parameters:
+//   - data (interface{}): The data to include in the JSON response.
+//
+// Returns:
+//   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) Error(data interface{}) error {
 	c.root.Response.SetStatusCode(StatusBadRequest)
 	return c.JSON(data)
 }
 
-// NoContent Response no content.
+// NoContent sends a response with no content.
+//
+// Returns:
+//   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) NoContent() error {
 	c.root.Response.SetStatusCode(StatusNoContent)
-
 	return nil
 }
 
-// View Render from template file.
+// View renders a template file and sends the resulting HTML as the HTTP response.
+//
+// Parameters:
+//   - template (string): The name or path of the template file to render.
+//   - data (Data): The data to pass into the template for rendering.
+//
+// Returns:
+//   - error: An error if the template rendering or sending the response fails.
 func (c *Ctx) View(template string, data Data) error {
 	c.ContentType(MIMETextHTMLCharsetUTF8)
 
@@ -210,7 +440,13 @@ func (c *Ctx) View(template string, data Data) error {
 	return view.Writer(template, data, c.root.Response.BodyWriter())
 }
 
-// JSON Response json content.
+// JSON serializes the given data into JSON and sends it as the HTTP response.
+//
+// Parameters:
+//   - data (JsonData): The data to serialize into JSON.
+//
+// Returns:
+//   - error: An error if the JSON serialization or sending the response fails.
 func (c *Ctx) JSON(data JsonData) error {
 	c.root.Response.Header.SetContentType(MIMEApplicationJSONCharsetUTF8)
 
@@ -222,31 +458,53 @@ func (c *Ctx) JSON(data JsonData) error {
 	return c.Raw(marshal)
 }
 
-// HTML sets the HTTP response body for HTML types.
-// This means no type assertion, recommended for faster performance
+// HTML sets the HTTP response body content to the provided HTML string.
+//
+// Parameters:
+//   - body (string): The HTML content to send as the response body.
+//
+// Returns:
+//   - error: An error if setting the response body fails.
 func (c *Ctx) HTML(body string) error {
 	c.root.Response.Header.SetContentType(MIMETextHTMLCharsetUTF8)
 
 	return c.Raw([]byte(body))
 }
 
-// String sets the HTTP response body for string types.
-// This means no type assertion, recommended for faster performance
+// String sets the HTTP response body content to the provided plain text string.
+//
+// Parameters:
+//   - body (string): The plain text content to send as the response body.
+//
+// Returns:
+//   - error: An error if setting the response body fails.
 func (c *Ctx) String(body string) error {
 	c.root.Response.Header.SetContentType(MIMETextPlain)
 
 	return c.Raw([]byte(body))
 }
 
-// Raw sets the HTTP response body without copying it.
-// From this point onward, the body argument must not be changed.
+// Raw sets the HTTP response body directly using the given raw byte slice.
+//
+// Parameters:
+//   - body ([]byte): The raw byte slice to send as the response body.
+//
+// Returns:
+//   - error: An error if setting the response body fails.
 func (c *Ctx) Raw(body []byte) error {
 	c.root.Response.SetBodyRaw(body)
 
 	return nil
 }
 
-// Stream sets response body stream and optional body size.
+// Stream sets the HTTP response body to a data stream with an optional size.
+//
+// Parameters:
+//   - stream (io.Reader): The data stream to send as the response body.
+//   - size (...int): Optional argument to specify the size of the stream body. Defaults to -1 (unknown size).
+//
+// Returns:
+//   - error: An error if setting the response body stream fails.
 func (c *Ctx) Stream(stream io.Reader, size ...int) error {
 	if len(size) > 0 && size[0] >= 0 {
 		c.root.Response.SetBodyStream(stream, size[0])
@@ -257,7 +515,13 @@ func (c *Ctx) Stream(stream io.Reader, size ...int) error {
 	return nil
 }
 
-// Redirect Send redirect.
+// Redirect sends a redirect response to the specified path.
+//
+// Parameters:
+//   - path (string): The URL path or full URL to redirect to.
+//
+// Returns:
+//   - error: An error if setting the redirect fails.
 func (c *Ctx) Redirect(path string) error {
 	// Check the `path` is relative URI. Build full internal URL
 	if !strings.HasPrefix(path, SchemaHTTP) {
@@ -270,10 +534,17 @@ func (c *Ctx) Redirect(path string) error {
 	return errors.UnknownError
 }
 
-// Download transfers the file from path as an attachment.
-// Typically, browsers will prompt the user for download.
-// By default, the Content-Disposition header filename= parameter is the filepath (this typically appears in the browser dialog).
-// Override this default with the filename parameter.
+// Download transfers the file from the provided path as an attachment.
+// Typically, browsers will prompt the user to download the file.
+// By default, the Content-Disposition header's filename parameter is set to the provided file path's basename.
+// Optionally, this behavior can be overridden with a custom filename.
+//
+// Parameters:
+//   - file (string): The path of the file to download.
+//   - filename (...string): Optional custom filename for the Content-Disposition header.
+//
+// Returns:
+//   - error: An error if the file transfer fails, otherwise nil.
 func (c *Ctx) Download(file string, filename ...string) error {
 	var fName string
 
@@ -294,8 +565,21 @@ var (
 )
 
 // File transfers the file from the given path.
-// The file is not compressed by default, enable this by passing a 'true' argument
-// Sets the Content-Type response HTTP header field based on the filename extension.
+//
+// The file is not compressed by default, enable this option by passing 'true' as an argument.
+//
+// Parameters:
+//   - file (string): The path of the file to be transferred.
+//   - compress (...bool): Optional argument to enable compression. Default is 'false'. Pass 'true' to enable.
+//
+// Returns:
+//   - error: An error if the file transfer fails, otherwise nil.
+//
+// Behavior:
+//   - Automatically sets the Content-Type response HTTP header field based on the file's extension.
+//   - If the file path is relative, it converts it to an absolute path.
+//   - Handles errors when file paths are invalid or if the file is not found.
+//   - Configures HTTP headers for compression if explicitly enabled.
 func (c *Ctx) File(file string, compress ...bool) error {
 	// Save the filename, we will need it in the error message if the file isn't found
 	filename := file
@@ -367,7 +651,16 @@ func (c *Ctx) File(file string, compress ...bool) error {
 	return nil
 }
 
-// Compress Response compressed content with Gzip|Brotli|Deflate (TODO Need more checking)
+// Compress compresses the HTTP response body using the best available compression method
+// based on the "Accept-Encoding" request header.
+//
+// # TODO Need more checking
+//
+// Parameters:
+//   - body ([]byte): The raw response body to be compressed.
+//
+// Returns:
+//   - error: An error if the compression process fails or encounters issues.
 func (c *Ctx) Compress(body []byte) error {
 	ctx := c.root
 
@@ -394,50 +687,156 @@ func (c *Ctx) Compress(body []byte) error {
 	return nil
 }
 
-// ===========================================================================================================
-// 					Ctx - Request Data (Form|MultipartForm|FormFile, Query, Path, RAW)
-// ===========================================================================================================
+// ====================================================================
+//  Ctx - Request Data (Form|MultipartForm|FormFile, Query, Path, RAW)
+// ====================================================================
 
-// UploadedFile uploaded file info.
+// UploadedFile represents the information of an uploaded file.
 type UploadedFile struct {
-	Field string // Field File name in form
-	Name  string // Name Uploaded file name
-	Path  string // Path Uploaded file path
-	Size  int64  // Size Uploaded file size
+	Field string // Field name in the form where the file was uploaded.
+	Name  string // Name of the uploaded file.
+	Path  string // Path where the uploaded file is saved.
+	Size  int64  // Size of the uploaded file in bytes.
 }
 
+// IRequestData provides an interface for handling HTTP request data, such as form values, queries,
+// and uploaded files, as well as parsing body content into specific data structures.
 type IRequestData interface {
-	// ParseBody Parse body to struct data type.
+	// ParseBody parses the HTTP request body into the provided struct.
+	//
+	// Parameters:
+	//   - data (any): A pointer to a struct where the body data will be unmarshalled.
+	//
+	// Returns:
+	//   - error: An error if parsing fails, otherwise nil.
 	ParseBody(data any) error
-	// ParseQuery Parse query string to struct data type.
+
+	// ParseQuery parses the query string into the provided struct.
+	//
+	// Parameters:
+	//   - data (any): A pointer to a struct where the query data will be unmarshalled.
+	//
+	// Returns:
+	//   - error: An error if parsing fails, otherwise nil.
 	ParseQuery(data any) error
-	// FormVal Get data from POST|PUT request.
+
+	// FormVal retrieves the value of a form key from a POST or PUT request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the form data.
+	//
+	// Returns:
+	//   - []byte: The value associated with the provided key.
 	FormVal(key string) []byte
-	// FormInt Get int from POST|PUT request.
+
+	// FormInt retrieves the integer value of a form key from a POST or PUT request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the form data.
+	//
+	// Returns:
+	//   - int: The integer value associated with the provided key.
+	//   - error: An error if the value cannot be converted to an integer.
 	FormInt(key string) (int, error)
-	// FormBool Get bool from POST|PUT request.
+
+	// FormBool retrieves the boolean value of a form key from a POST or PUT request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the form data.
+	//
+	// Returns:
+	//   - bool: The boolean value associated with the provided key.
+	//   - error: An error if the value cannot be converted to a boolean.
 	FormBool(key string) (bool, error)
-	// FormFloat Get float from POST|PUT request.
+
+	// FormFloat retrieves the float value of a form key from a POST or PUT request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the form data.
+	//
+	// Returns:
+	//   - float64: The float value associated with the provided key.
+	//   - error: An error if the value cannot be converted to a float.
 	FormFloat(key string) (float64, error)
-	// FormUpload Process and get uploaded files from POST|PUT request.
+
+	// FormUpload processes and retrieves uploaded files from a POST or PUT request.
+	//
+	// Parameters:
+	//   - files (...string): Optional list of form field names to process. If none are specified, all uploaded files are processed.
+	//
+	// Returns:
+	//   - []UploadedFile: A list of UploadedFile details for each processed file.
+	//   - error: An error if the file upload processing fails.
 	FormUpload(files ...string) ([]UploadedFile, error)
-	// Queries Get data from Query string.
+
+	// Queries retrieves all key-value pairs from the query string of the HTTP request.
+	//
+	// Returns:
+	//   - map[string]string: A map of key-value pairs representing the query string data.
 	Queries() map[string]string
-	// QueryStr Get data from Query string.
+
+	// QueryStr retrieves a string value from the query string of the HTTP request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - string: The value associated with the provided key.
 	QueryStr(key string) string
-	// QueryInt Get int from Query string.
+
+	// QueryInt retrieves an integer value from the query string of the HTTP request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - int: The integer value associated with the provided key.
+	//   - error: An error if the value cannot be converted to an integer.
 	QueryInt(key string) (int, error)
-	// QueryBool Get bool from Query string.
+
+	// QueryBool retrieves a boolean value from the query string of the HTTP request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - bool: The boolean value associated with the provided key.
+	//   - error: An error if the value cannot be converted to a boolean.
 	QueryBool(key string) (bool, error)
-	// QueryFloat Get float from Query string.
+
+	// QueryFloat retrieves a float value from the query string of the HTTP request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - float64: The float value associated with the provided key.
+	//   - error: An error if the value cannot be converted to a float.
 	QueryFloat(key string) (float64, error)
-	// PathVal Get data from Path request.
+
+	// PathVal retrieves a value from the path parameters of the HTTP request.
+	//
+	// Parameters:
+	//   - key (string): The name of the path parameter to retrieve.
+	//
+	// Returns:
+	//   - string: The value associated with the provided key.
 	PathVal(key string) string
-	// OriginalURL Original URL.
+
+	// OriginalURL retrieves the original URL of the HTTP request.
+	//
+	// Returns:
+	//   - string: The original URL requested by the client.
 	OriginalURL() string
 }
 
-// ParseBody Parse body JSON data to struct data type.
+// ParseBody parses the HTTP request body into the provided struct.
+//
+// Parameters:
+//   - data (any): A pointer to a struct where the body data will be unmarshalled.
+//
+// Returns:
+//   - error: An error if parsing fails, otherwise nil.
 func (c *Ctx) ParseBody(data any) error {
 	jsonData := c.root.PostBody()
 
@@ -449,14 +848,26 @@ func (c *Ctx) ParseBody(data any) error {
 	return nil
 }
 
-// ParseQuery Parse query string to struct data type.
+// ParseQuery parses the query string into the provided struct.
+//
+// Parameters:
+//   - out (interface{}): A pointer to a struct where the query data will be unmarshalled.
+//
+// Returns:
+//   - error: Always returns nil (currently not implemented).
 func (c *Ctx) ParseQuery(out interface{}) error {
 	log.Error("===> Not yet implemented <===")
 
 	return nil
 }
 
-// FormVal Get data from POST|PUT request.
+// FormVal retrieves the value of a form key from a POST or PUT request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the form data.
+//
+// Returns:
+//   - []byte: The value associated with the provided key.
 func (c *Ctx) FormVal(key string) []byte {
 	data := c.root.PostArgs().Peek(key)
 	if data == nil {
@@ -466,7 +877,14 @@ func (c *Ctx) FormVal(key string) []byte {
 	return data
 }
 
-// FormInt Get int from POST|PUT request.
+// FormInt retrieves the integer value of a form key from a POST or PUT request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the form data.
+//
+// Returns:
+//   - int: The integer value associated with the provided key.
+//   - error: An error if the value cannot be converted to an integer.
 func (c *Ctx) FormInt(key string) (int, error) {
 	data := c.root.PostArgs().Peek(key)
 	if data == nil {
@@ -476,7 +894,14 @@ func (c *Ctx) FormInt(key string) (int, error) {
 	return strconv.Atoi(string(data))
 }
 
-// FormBool Get bool from POST|PUT request.
+// FormBool retrieves the boolean value of a form key from a POST or PUT request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the form data.
+//
+// Returns:
+//   - bool: The boolean value associated with the provided key.
+//   - error: An error if the value cannot be converted to a boolean.
 func (c *Ctx) FormBool(key string) (bool, error) {
 	data := c.root.PostArgs().Peek(key)
 	if data == nil {
@@ -486,7 +911,14 @@ func (c *Ctx) FormBool(key string) (bool, error) {
 	return strconv.ParseBool(string(data))
 }
 
-// FormFloat Get float from POST|PUT request.
+// FormFloat retrieves the float value of a form key from a POST or PUT request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the form data.
+//
+// Returns:
+//   - float64: The float value associated with the provided key.
+//   - error: An error if the value cannot be converted to a float.
 func (c *Ctx) FormFloat(key string) (float64, error) {
 	data := c.root.PostArgs().Peek(key)
 	if data == nil {
@@ -496,7 +928,14 @@ func (c *Ctx) FormFloat(key string) (float64, error) {
 	return strconv.ParseFloat(string(data), 64)
 }
 
-// FormUpload Process and get uploaded files from POST|PUT request.
+// FormUpload processes and retrieves uploaded files from a POST or PUT request.
+//
+// Parameters:
+//   - files (...string): Optional list of form field names to process. If none are specified, all uploaded files are processed.
+//
+// Returns:
+//   - []UploadedFile: A list of UploadedFile details for each processed file.
+//   - error: An error if the file upload processing fails.
 func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 	var uploadedFiles []UploadedFile
 
@@ -555,7 +994,10 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 	return uploadedFiles, nil
 }
 
-// Queries Get data from Query string.
+// Queries retrieves all key-value pairs from the query string of the HTTP request.
+//
+// Returns:
+//   - map[string]string: A map of key-value pairs representing the query string data.
 func (c *Ctx) Queries() map[string]string {
 	m := make(map[string]string, c.root.QueryArgs().Len())
 	c.root.QueryArgs().VisitAll(func(key, value []byte) {
@@ -564,7 +1006,13 @@ func (c *Ctx) Queries() map[string]string {
 	return m
 }
 
-// QueryStr Get data from Query string.
+// QueryStr retrieves a string value from the query string of the HTTP request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - string: The value associated with the provided key.
 func (c *Ctx) QueryStr(key string) string {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
@@ -574,7 +1022,14 @@ func (c *Ctx) QueryStr(key string) string {
 	return string(data)
 }
 
-// QueryInt Get int from Query string.
+// QueryInt retrieves an integer value from the query string of the HTTP request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - int: The integer value associated with the provided key.
+//   - error: An error if the value cannot be converted to an integer.
 func (c *Ctx) QueryInt(key string) (int, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
@@ -584,7 +1039,14 @@ func (c *Ctx) QueryInt(key string) (int, error) {
 	return strconv.Atoi(string(data))
 }
 
-// QueryBool Get bool from Query string.
+// QueryBool retrieves a boolean value from the query string or form data of the HTTP request.
+//
+// Parameters:
+//   - key (string): The key to retrieve the boolean value from.
+//
+// Returns:
+//   - bool: The boolean value associated with the provided key.
+//   - error: An error if the value cannot be converted to a boolean.
 func (c *Ctx) QueryBool(key string) (bool, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
@@ -594,7 +1056,14 @@ func (c *Ctx) QueryBool(key string) (bool, error) {
 	return strconv.ParseBool(string(data))
 }
 
-// QueryFloat Get float from Query string.
+// QueryFloat retrieves a float value from the query string or form data of the HTTP request.
+//
+// Parameters:
+//   - key (string): The key to retrieve the float value from.
+//
+// Returns:
+//   - float64: The float value associated with the provided key.
+//   - error: An error if the value cannot be converted to a float.
 func (c *Ctx) QueryFloat(key string) (float64, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
@@ -604,7 +1073,13 @@ func (c *Ctx) QueryFloat(key string) (float64, error) {
 	return strconv.ParseFloat(string(data), 64)
 }
 
-// PathVal Get data from Path request.
+// PathVal retrieves a value from the path parameters of the HTTP request.
+//
+// Parameters:
+//   - key (string): The name of the path parameter to retrieve.
+//
+// Returns:
+//   - string: The value associated with the provided key, or an empty string if the key is not found.
 func (c *Ctx) PathVal(key string) string {
 	val := c.root.UserValue(key)
 
@@ -615,44 +1090,88 @@ func (c *Ctx) PathVal(key string) string {
 	return val.(string)
 }
 
-// OriginalURL contains the original request URL.
-// Returned value is only valid within the handler. Do not store any references.
-// Make copies or use the Immutable setting to use the value outside the Handler.
+// OriginalURL retrieves the original URL of the HTTP request.
+//
+// Returns:
+//   - string: The original URL requested by the client.
 func (c *Ctx) OriginalURL() string {
 	return string(c.root.Request.Header.RequestURI())
 }
 
-// ===========================================================================================================
-// 											Ctx - Data
-// ===========================================================================================================
+// ====================================================================
+//                          Ctx - Data
+// ====================================================================
 
 type IData interface {
-	// SetData Keep data in request context Ctx.
+	// SetData stores data in the request context Ctx.
+	//
+	// Parameters:
+	//   - key (string): The key under which the data will be stored.
+	//   - data (interface{}): The data to be stored.
 	SetData(key string, data interface{})
-	// GetData Get data from request context Ctx.
+
+	// GetData retrieves data from the request context Ctx.
+	//
+	// Parameters:
+	//   - key (string): The key associated with the data.
+	//
+	// Returns:
+	//   - interface{}: The data associated with the provided key.
 	GetData(key string) interface{}
-	// SetSession Keep data in request context Ctx.
+
+	// SetSession stores data in the session context.
+	//
+	// Parameters:
+	//   - key (string): The key under which the session data will be stored.
+	//   - data (interface{}): The session data to be stored.
 	SetSession(key string, data interface{})
-	// GetSession Get data from request context Ctx.
+
+	// GetSession retrieves data from the session context.
+	//
+	// Parameters:
+	//   - key (string): The key associated with the session data.
+	//
+	// Returns:
+	//   - interface{}: The session data associated with the provided key.
 	GetSession(key string) interface{}
 }
 
-// SetData Keep data in request context Ctx.
+// SetData stores data in the request context Ctx.
+//
+// Parameters:
+//   - key (string): The key under which the data will be stored.
+//   - data (interface{}): The data to be stored.
 func (c *Ctx) SetData(key string, data interface{}) {
 	c.data[key] = data
 }
 
-// GetData Get data from request context Ctx.
+// GetData retrieves data from the request context Ctx.
+//
+// Parameters:
+//   - key (string): The key associated with the data.
+//
+// Returns:
+//   - interface{}: The data associated with the provided key.
 func (c *Ctx) GetData(key string) interface{} {
 	return c.data[key]
 }
 
-// SetSession Keep data in session.
+// SetSession stores data in the session context.
+//
+// Parameters:
+//   - key (string): The key under which the session data will be stored.
+//   - data (interface{}): The session data to be stored.
 func (c *Ctx) SetSession(key string, data interface{}) {
 	session.Set(c, key, data)
 }
 
-// GetSession Get data from session.
+// GetSession retrieves data from the session context.
+//
+// Parameters:
+//   - key (string): The key associated with the session data.
+//
+// Returns:
+//   - interface{}: The session data associated with the provided key.
 func (c *Ctx) GetSession(key string) interface{} {
 	return session.Get(c, key)
 }
