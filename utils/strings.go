@@ -3,6 +3,8 @@ package utils
 import (
 	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
+	"strings"
+	"unicode"
 	"unsafe"
 )
 
@@ -86,4 +88,155 @@ func QuoteStr(raw string) string {
 	bytebufferpool.Put(bb)
 
 	return quoted
+}
+
+// Truncate truncates a string to the specified length and adds an ellipsis if truncated.
+//
+// Parameters:
+//   - s string: The input string to truncate.
+//   - length int: The maximum length of the truncated string (excluding ellipsis).
+//   - withEllipsis bool: Whether to add an ellipsis ("...") if the string is truncated.
+//
+// Returns:
+//   - string: The truncated string, with an ellipsis if requested and if truncation occurred.
+func Truncate(s string, length int, withEllipsis bool) string {
+	if length <= 0 {
+		return ""
+	}
+
+	if len(s) <= length {
+		return s
+	}
+
+	if withEllipsis {
+		if length > 3 {
+			return s[:length-3] + "..."
+		}
+		return s[:length]
+	}
+
+	return s[:length]
+}
+
+// IsEmpty checks if a string is empty.
+//
+// Parameters:
+//   - s string: The input string to check.
+//
+// Returns:
+//   - bool: True if the string is empty, false otherwise.
+func IsEmpty(s string) bool {
+	return len(s) == 0
+}
+
+// IsBlank checks if a string is empty or contains only whitespace.
+//
+// Parameters:
+//   - s string: The input string to check.
+//
+// Returns:
+//   - bool: True if the string is empty or contains only whitespace, false otherwise.
+func IsBlank(s string) bool {
+	if len(s) == 0 {
+		return true
+	}
+
+	for _, r := range s {
+		if !unicode.IsSpace(r) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ToCamelCase converts a string to camelCase.
+//
+// Parameters:
+//   - s string: The input string to convert.
+//
+// Returns:
+//   - string: The camelCase version of the input string.
+func ToCamelCase(s string) string {
+	if s == "" {
+		return s
+	}
+
+	words := strings.FieldsFunc(s, func(r rune) bool {
+		return r == '_' || r == '-' || r == ' ' || unicode.IsPunct(r)
+	})
+
+	if len(words) == 0 {
+		return ""
+	}
+
+	result := strings.ToLower(words[0])
+	for i := 1; i < len(words); i++ {
+		if words[i] == "" {
+			continue
+		}
+		result += strings.ToUpper(words[i][:1]) + strings.ToLower(words[i][1:])
+	}
+
+	return result
+}
+
+// ToPascalCase converts a string to PascalCase.
+//
+// Parameters:
+//   - s string: The input string to convert.
+//
+// Returns:
+//   - string: The PascalCase version of the input string.
+func ToPascalCase(s string) string {
+	if s == "" {
+		return s
+	}
+
+	words := strings.FieldsFunc(s, func(r rune) bool {
+		return r == '_' || r == '-' || r == ' ' || unicode.IsPunct(r)
+	})
+
+	if len(words) == 0 {
+		return ""
+	}
+
+	var result string
+	for _, word := range words {
+		if word == "" {
+			continue
+		}
+		result += strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
+	}
+
+	return result
+}
+
+// ToSnakeCase converts a string to snake_case.
+//
+// Parameters:
+//   - s string: The input string to convert.
+//
+// Returns:
+//   - string: The snake_case version of the input string.
+func ToSnakeCase(s string) string {
+	if s == "" {
+		return s
+	}
+
+	var result strings.Builder
+	for i, r := range s {
+		if unicode.IsUpper(r) {
+			if i > 0 {
+				result.WriteRune('_')
+			}
+			result.WriteRune(unicode.ToLower(r))
+		} else if r == ' ' || r == '-' {
+			result.WriteRune('_')
+		} else {
+			result.WriteRune(r)
+		}
+	}
+
+	return result.String()
 }

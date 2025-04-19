@@ -131,13 +131,13 @@ func (fly *GFly) Run() {
 		utils.Getenv("SERVER_PORT", 7789),
 	)
 
-	// --------------- Setup Logs ---------------
-	setupLog()
-
-	// Print startup message
+	// --------------- Print startup message ---------------
 	if !fly.config.DisableStartupMessage {
 		startupMessage(url, AppName, AppEnv)
 	}
+
+	// --------------- Setup Logs ---------------
+	setupLog()
 
 	// --------------- Checking service  ---------------
 	// TODO: Need to add more checking

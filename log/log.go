@@ -39,7 +39,8 @@ type Logger interface {
 	// Parameters:
 	//   - v: The variables or objects to log.
 	Fatal(v ...interface{})
-	// Panic logs a message at the Panic level and panics.
+	// Panic logs a message at the Panic level.
+	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - v: The variables or objects to log.
 	Panic(v ...interface{})
@@ -77,7 +78,8 @@ type FormatLogger interface {
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
 	Fatalf(format string, v ...interface{})
-	// Panicf logs a formatted message at the Panic level and panics.
+	// Panicf logs a formatted message at the Panic level.
+	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
@@ -116,7 +118,8 @@ type WithLogger interface {
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
 	Fatalw(msg string, keysAndValues ...interface{})
-	// Panicw logs a message at the Panic level with key-value pairs and panics.
+	// Panicw logs a message at the Panic level with key-value pairs.
+	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
@@ -165,7 +168,7 @@ const (
 	LevelWarn               // Warn represents warning messages.
 	LevelError              // Error represents error messages.
 	LevelFatal              // Fatal represents critical error messages and causes the program to exit.
-	LevelPanic              // Panic represents critical error messages and causes a panic.
+	LevelPanic              // Panic represents critical error messages (but does not actually cause a panic).
 )
 
 var levels = []string{

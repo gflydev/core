@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync"
 
 	"github.com/valyala/bytebufferpool"
 )
@@ -60,7 +59,7 @@ func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface
 	if len(fmtArgs) > 0 {
 		_, _ = fmt.Fprintf(buf, format, fmtArgs...)
 	} else {
-		_, _ = fmt.Fprint(buf, fmtArgs...)
+		_, _ = buf.WriteString(format) // Just write the format string if no args
 	}
 	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
 	buf.Reset()                                // Reset the buffer for reuse
@@ -89,23 +88,25 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 	if format != "" {
 		_, _ = buf.WriteString(format) // It is fine to ignore the error
 	}
-	var once sync.Once
-	isFirst := true
+
 	// Write the key-value pairs to the buffer
 	if len(keysAndValues) > 0 {
-		if (len(keysAndValues) & 1) == 1 { // Check for unpaired key-value
+		// Check for unpaired key-value
+		if (len(keysAndValues) & 1) == 1 {
 			keysAndValues = append(keysAndValues, "KEYVALS UNPAIRED") // Add placeholder for missing value
 		}
 
+		// Add a space before key-value pairs if there's a message
+		if format != "" {
+			_, _ = buf.WriteString(" ") // Add space after message
+		}
+
+		// Process key-value pairs
 		for i := 0; i < len(keysAndValues); i += 2 {
-			if format == "" && isFirst {
-				once.Do(func() {
-					_, _ = fmt.Fprintf(buf, "%s=%v", keysAndValues[i], keysAndValues[i+1])
-					isFirst = false
-				})
-				continue
+			if i > 0 {
+				_, _ = buf.WriteString(" ") // Add space between pairs
 			}
-			_, _ = fmt.Fprintf(buf, " %s=%v", keysAndValues[i], keysAndValues[i+1])
+			_, _ = fmt.Fprintf(buf, "%s=%v", keysAndValues[i], keysAndValues[i+1])
 		}
 	}
 
@@ -171,7 +172,8 @@ func (l *defaultLogger) Fatal(v ...interface{}) {
 	l.privateLog(LevelFatal, v)
 }
 
-// Panic logs a message at the Panic level and then panics.
+// Panic logs a message at the Panic level.
+// Note: Despite the name, this method does not actually panic.
 // Parameters:
 //   - v: Variadic arguments to be logged.
 //
@@ -240,7 +242,8 @@ func (l *defaultLogger) Fatalf(format string, v ...interface{}) {
 	l.privateLogf(LevelFatal, format, v)
 }
 
-// Panicf logs a formatted message at the Panic level and then panics.
+// Panicf logs a formatted message at the Panic level.
+// Note: Despite the name, this method does not actually panic.
 // Parameters:
 //   - format: The format string for the message.
 //   - v: Variadic arguments for the format string.
@@ -310,7 +313,8 @@ func (l *defaultLogger) Fatalw(msg string, keysAndValues ...interface{}) {
 	l.privateLogw(LevelFatal, msg, keysAndValues)
 }
 
-// Panicw logs a message at the Panic level with additional key-value pairs and then panics.
+// Panicw logs a message at the Panic level with additional key-value pairs.
+// Note: Despite the name, this method does not actually panic.
 // Parameters:
 //   - msg: The message to be logged.
 //   - keysAndValues: Variadic key-value pairs to include in the log.

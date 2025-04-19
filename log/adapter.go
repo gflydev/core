@@ -71,13 +71,14 @@ func Trace(v ...interface{}) {
 	logger.Trace(v...)
 }
 
-// Panic logs a message and then panics using the default logger's Panic method.
+// Panic logs a message at the Panic level using the default logger's Panic method.
+// Note: Despite the name, this method does not actually panic.
 //
 // Parameters:
 //   - v (...interface{}): Variadic arguments that are passed to the logger.
 //
 // Returns:
-//   - None. The function terminates with a panic.
+//   - None.
 func Panic(v ...interface{}) {
 	logger.Panic(v...)
 }
@@ -154,14 +155,15 @@ func Tracef(format string, v ...interface{}) {
 	logger.Tracef(format, v...)
 }
 
-// Panicf logs a formatted message and then panics using the default logger's Panicf method.
+// Panicf logs a formatted message at the Panic level using the default logger's Panicf method.
+// Note: Despite the name, this method does not actually panic.
 //
 // Parameters:
 //   - format (string): The format string.
 //   - v (...interface{}): Values to format.
 //
 // Returns:
-//   - None. The function terminates with a panic.
+//   - None.
 func Panicf(format string, v ...interface{}) {
 	logger.Panicf(format, v...)
 }
@@ -238,14 +240,15 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 	logger.Fatalw(msg, keysAndValues...)
 }
 
-// Panicw logs a message with context key-value pairs and then panics.
+// Panicw logs a message at the Panic level with context key-value pairs using the default logger's Panicw method.
+// Note: Despite the name, this method does not actually panic.
 //
 // Parameters:
 //   - msg (string): The message to log.
 //   - keysAndValues (...interface{}): Key-value pairs providing additional context.
 //
 // Returns:
-//   - None. The function terminates with a panic.
+//   - None.
 func Panicw(msg string, keysAndValues ...interface{}) {
 	logger.Panicw(msg, keysAndValues...)
 }

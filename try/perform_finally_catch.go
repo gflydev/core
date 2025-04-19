@@ -1,104 +1,173 @@
 package try
 
-// RethrowPanic Special re-throw panic
+// RethrowPanic is a special marker used to indicate that the original panic should be rethrown.
+// This is used internally by the Throw function when called with nil.
 const RethrowPanic = "___throw_it___"
 
-// Define types of Try-Finally-Catch
+// Define types for the Try-Finally-Catch pattern
 type (
-	// F Function type
+	// F represents a function with no parameters and no return value.
+	// Used for try and finally blocks.
 	F func()
-	// E Error type
+
+	// E represents any type of error or panic value.
+	// This is an alias for interface{} to allow catching any type of panic.
 	E interface{}
-	// EF Error function type
+
+	// EF represents a function that takes an error parameter.
+	// Used for catch blocks to handle errors.
 	EF func(err E)
-	// It structure
+
+	// It is the main structure that chains try, finally, and catch blocks.
+	// It holds the state of the error handling process.
 	It struct {
-		finally F
-		Error   E
+		finally F // The function to execute in the finally block
+		Error   E // The error/panic value if one occurred
 	}
 )
 
-// Throw function (return or rethrow an exception)
+// Throw explicitly throws a panic that can be caught by a catch block.
+// This is useful for rethrowing errors or creating custom errors.
+//
 // Parameters:
-//   - e: The error to be thrown. If nil, a default panic with RethrowPanic value is thrown.
+//   - e: The error to be thrown. If nil, the original panic value will be rethrown.
+//
+// Behavior:
+//   - If e is nil, a special RethrowPanic marker is used to indicate the original error should be used.
+//   - Otherwise, the provided value is directly used as the panic value.
+//
+// Example:
+//
+//	Perform(func() {
+//	    if err := someOperation(); err != nil {
+//	        Throw(err) // Throw a specific error
+//	    }
+//	}).Catch(func(e E) {
+//	    // Handle the error
+//	})
 func Throw(e E) {
-	// Throw default error
 	if e == nil {
+		// Use the special marker to indicate we should rethrow the original error
 		panic(RethrowPanic)
 	} else {
-		// Throw a specific exception
+		// Throw the specific error provided
 		panic(e)
 	}
 }
 
-// Perform registers the main-logic function and executes it.
+// Perform starts a try-catch-finally block by executing the provided function.
+// This is the entry point for the error handling pattern.
+//
 // Parameters:
 //   - funcToTry: The main logic to execute within the try block.
 //
 // Returns:
-//   - *It: An instance of the It structure containing the result and error (if any).
+//   - *It: An instance of the It structure for chaining Finally and Catch calls.
+//
+// Example:
+//
+//	Perform(func() {
+//	    // Code that might panic
+//	}).Finally(func() {
+//	    // Cleanup code that always runs
+//	}).Catch(func(e E) {
+//	    // Error handling code
+//	})
 func Perform(funcToTry F) (o *It) {
-	// Initial exception object with null values
+	// Create a new It instance with no finally function and no error
 	o = &It{nil, nil}
 
-	// Catch throw in from main logic
+	// Set up recovery to catch any panics from the try block
 	defer func() {
 		o.Error = recover()
 	}()
 
-	// Perform main logic
+	// Execute the try block
 	funcToTry()
 
-	// Response instance of It instance
+	// Return It instance for chaining
 	return
 }
 
-// Finally registers the finally-logic function that is executed at the end of the try-catch block.
+// Finally registers a function to be executed at the end of the try-catch block,
+// regardless of whether an error occurred or not.
+//
 // Parameters:
-//   - finallyFunc: The function containing cleanup or finalization logic to be executed.
+//   - finallyFunc: The function containing cleanup or finalization logic.
 //
 // Returns:
-//   - *It: The same instance of the It structure for chaining.
+//   - *It: The same instance of It structure for chaining.
+//
+// Panics:
+//   - If Finally is called more than once on the same It instance.
+//
+// Example:
+//
+//	Perform(func() {
+//	    // Open a file
+//	}).Finally(func() {
+//	    // Close the file, regardless of errors
+//	}).Catch(func(e E) {
+//	    // Handle any errors
+//	})
 func (o *It) Finally(finallyFunc F) *It {
 	if o.finally != nil {
-		panic("Finally Function by default !!")
-	} else {
-		o.finally = finallyFunc
+		panic("Finally function already registered. Cannot register multiple Finally blocks.")
 	}
 
+	o.finally = finallyFunc
 	return o
 }
 
-// Catch registers the error-handling function that is executed if an error occurs.
+// Catch registers an error-handling function that is executed if an error occurs
+// in the try block. If no error occurred, the catch block is skipped.
+//
 // Parameters:
 //   - funcCaught: The function to handle the error, which receives the error as a parameter.
 //
 // Returns:
-//   - *It: The same instance of the It structure for chaining.
+//   - *It: The same instance of It structures for chaining.
+//
+// Behavior:
+//   - If an error occurred in the try block, the catch function is executed with the error.
+//   - If no error occurred, the catch function is skipped.
+//   - The final function (if registered) is always executed, even if the catch block panics.
+//   - If the catch block panics, the panic is propagated after the finally block executes.
+//   - If Throw(nil) is called in the catch block, the original error is rethrown.
+//
+// Example:
+//
+//	Perform(func() {
+//	    // Code that might panic
+//	}).Catch(func(e E) {
+//	    // Handle the error
+//	    log.Printf("Error: %v", e)
+//	})
 func (o *It) Catch(funcCaught EF) *It {
-	// Check if it has Error
+	// Check if an error occurred in the try block
 	if o.Error != nil {
-		// Catch error in from catching logic
+		// Set up recovery to catch any panics from the catch block
 		defer func() {
-			// Call finally (Before receive error from recovering process)
+			// Always execute the finally block if one is registered
 			if o.finally != nil {
 				o.finally()
 			}
 
-			// Receive error from recovering process
+			// Check if the catch block panicked
 			if err := recover(); err != nil {
-				// If it is just re-throw panic Exception
+				// If the special RethrowPanic marker was used, replace it with the original error
 				if err == RethrowPanic {
 					err = o.Error
 				}
+				// Propagate the panic
 				panic(err)
 			}
 		}()
 
-		// Perform catching logic
+		// Execute the catch block with the error
 		funcCaught(o.Error)
 	} else if o.finally != nil {
-		// Perform finally logic
+		// If no error occurred but a finally block is registered, execute it
 		o.finally()
 	}
 

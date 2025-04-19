@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ====================================================================
@@ -20,13 +21,45 @@ import (
 //   - name (string): The name of the application.
 //   - env (string): The application's runtime environment (e.g., development, production).
 func startupMessage(url, name, env string) {
-	log.Info("-------------------------------------------")
-	log.Info(fmt.Sprintf("	   ---- _=| gFly %s |=_ ----	   ", Version))
-	log.Info("	   Laravel inspired web framework	  ")
-	log.Info("-------------------------------------------")
-	log.Infof("   * Server: %s", url)
-	log.Infof("   * App Name: %s", name)
-	log.Infof("   * Environment: %s", env)
+	// Create a pretty box for the startup message
+	headerText := fmt.Sprintf("gFly Framework %s", Version)
+
+	// Calculate box width based on the version string length
+	minWidth := 70 // Minimum width to accommodate the framework name line
+	versionLineLen := len(fmt.Sprintf("---- _=| %s |=_ ----", headerText))
+	boxWidth := minWidth
+	if versionLineLen+10 > minWidth {
+		boxWidth = versionLineLen + 10
+	} // Add padding
+
+	// Create horizontal borders
+	topBorder := "╔" + strings.Repeat("═", boxWidth-2) + "╗"
+	midBorder := "╠" + strings.Repeat("═", boxWidth-2) + "╣"
+	bottomBorder := "╚" + strings.Repeat("═", boxWidth-2) + "╝"
+
+	// Center text in the box
+	centerText := func(text string) string {
+		padding := boxWidth - 2 - len(text)
+		leftPad := padding / 2
+		rightPad := padding - leftPad
+		return "║" + strings.Repeat(" ", leftPad) + text + strings.Repeat(" ", rightPad) + "║"
+	}
+
+	// Create the box with borders
+	boxLines := []string{
+		topBorder,
+		centerText(headerText),
+		centerText("Laravel inspired web framework"),
+		midBorder,
+		centerText(fmt.Sprintf("App Name: %s", name)),
+		centerText(fmt.Sprintf("Server: %s | Environment: %s", url, env)),
+		bottomBorder,
+	}
+
+	// Log the box and additional information
+	for _, line := range boxLines {
+		fmt.Println(line)
+	}
 }
 
 // ====================================================================
@@ -40,30 +73,49 @@ func setupLog() {
 
 	// Log channel file
 	if logChannel == "file" {
-		logFile := fmt.Sprintf("storage/logs/%s", utils.Getenv("LOG_FILE", "gfly.log"))
+		logDir := utils.Getenv("LOG_DIR", "storage/logs")
+		logFileName := utils.Getenv("LOG_FILE", "gfly.log")
+		logFile := filepath.Join(logDir, logFileName)
 
-		// Set the output destination to the console and file.
-		file, _ := os.OpenFile(filepath.Clean(logFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
-		iw := io.MultiWriter(os.Stdout, file)
-		log.SetOutput(iw)
+		// Ensure log directory exists
+		if err := os.MkdirAll(logDir, 0o755); err != nil {
+			fmt.Printf("Error creating log directory: %v\n", err)
+			// Continue with stdout only if directory creation fails
+		} else {
+			// Set the output destination to the console and file
+			file, err := os.OpenFile(filepath.Clean(logFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+			if err != nil {
+				fmt.Printf("Error opening log file: %v\n", err)
+				// Continue with stdout only if file opening fails
+			} else {
+				iw := io.MultiWriter(os.Stdout, file)
+				log.SetOutput(iw)
+			}
+		}
 	}
 
-	// Set log level
-	switch utils.Getenv("LOG_LEVEL", "Trace") {
-	case "Trace":
+	// Set log level (case-insensitive)
+	logLevel := strings.ToLower(utils.Getenv("LOG_LEVEL", "trace"))
+
+	switch logLevel {
+	case "trace":
 		log.SetLevel(log.LevelTrace)
-	case "Debug":
+	case "debug":
 		log.SetLevel(log.LevelDebug)
-	case "Info":
+	case "info":
 		log.SetLevel(log.LevelInfo)
-	case "Warn":
+	case "warn", "warning":
 		log.SetLevel(log.LevelWarn)
-	case "Error":
+	case "error":
 		log.SetLevel(log.LevelError)
-	case "Fatal":
+	case "fatal":
 		log.SetLevel(log.LevelFatal)
-	case "Panic":
+	case "panic":
 		log.SetLevel(log.LevelPanic)
+	default:
+		// Default to trace level if unrecognized
+		log.SetLevel(log.LevelTrace)
+		fmt.Printf("Unrecognized log level: %s, defaulting to Trace\n", logLevel)
 	}
 
 	log.Trace("Setup Logs")
