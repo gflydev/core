@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
 	"io"
@@ -58,7 +59,7 @@ func startupMessage(url, name, env string) {
 
 	// Log the box and additional information
 	for _, line := range boxLines {
-		fmt.Println(line)
+		color.Blue(line)
 	}
 }
 

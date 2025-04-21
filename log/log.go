@@ -160,6 +160,18 @@ type AllLogger interface {
 // log level (smaller by integer comparison) will not be output.
 type Level int
 
+// ANSI color codes for terminal output
+const (
+	colorReset  = "\033[0m"
+	colorGray   = "\033[37m"
+	colorBlue   = "\033[34m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorRed    = "\033[31m"
+	colorPurple = "\033[35m"
+	colorCyan   = "\033[36m"
+)
+
 // The levels of logs.
 const (
 	LevelTrace Level = iota // Trace represents very detailed debug information.
@@ -172,13 +184,13 @@ const (
 )
 
 var levels = []string{
-	"[TRACE] ", // Trace level string representation.
-	"[DEBUG] ", // Debug level string representation.
-	"[INFO] ",  // Info level string representation.
-	"[WARN] ",  // Warn level string representation.
-	"[ERROR] ", // Error level string representation.
-	"[FATAL] ", // Fatal level string representation.
-	"[PANIC] ", // Panic level string representation.
+	colorGray + "[TRACE] " + colorReset,   // Trace level string representation.
+	colorBlue + "[DEBUG] " + colorReset,   // Debug level string representation.
+	colorGreen + "[INFO] " + colorReset,   // Info level string representation.
+	colorYellow + "[WARN] " + colorReset,  // Warn level string representation.
+	colorRed + "[ERROR] " + colorReset,    // Error level string representation.
+	colorPurple + "[FATAL] " + colorReset, // Fatal level string representation.
+	colorCyan + "[PANIC] " + colorReset,   // Panic level string representation.
 }
 
 // toString converts a Level to its string representation.
