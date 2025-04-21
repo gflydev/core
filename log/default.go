@@ -29,9 +29,9 @@ func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
 		return
 	}
 	level := lv.toString()
-	buf := bytebufferpool.Get()     // Borrow a buffer from the bytebufferpool
-	_, _ = buf.WriteString(level)   // It is fine to ignore the error
-	_, _ = fmt.Fprint(buf, fmtArgs) // It is fine to ignore the error
+	buf := bytebufferpool.Get()        // Borrow a buffer from the bytebufferpool
+	_, _ = buf.WriteString(level)      // It is fine to ignore the error
+	_, _ = fmt.Fprint(buf, fmtArgs...) // It is fine to ignore the error
 
 	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
 	buf.Reset()                                // Reset the buffer for reuse

@@ -8,8 +8,30 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+// ansiStripper is a writer that strips ANSI color codes before writing to the underlying writer.
+type ansiStripper struct {
+	writer io.Writer
+}
+
+// Write implements the io.Writer interface.
+// It strips ANSI color codes from the input before writing to the underlying writer.
+func (s *ansiStripper) Write(p []byte) (n int, err error) {
+	// Regular expression to match ANSI color codes
+	re := regexp.MustCompile("\033\\[[0-9;]*m")
+
+	// Strip ANSI color codes
+	clean := re.ReplaceAll(p, []byte(""))
+
+	// Write the cleaned content to the underlying writer
+	_, err = s.writer.Write(clean)
+
+	// Return the original length to satisfy the Writer interface
+	return len(p), err
+}
 
 // ====================================================================
 //                              Bootstrap
@@ -89,7 +111,9 @@ func setupLog() {
 				fmt.Printf("Error opening log file: %v\n", err)
 				// Continue with stdout only if file opening fails
 			} else {
-				iw := io.MultiWriter(os.Stdout, file)
+				// Create a writer that strips ANSI color codes before writing to the file
+				noColorFile := &ansiStripper{writer: file}
+				iw := io.MultiWriter(os.Stdout, noColorFile)
 				log.SetOutput(iw)
 			}
 		}
@@ -119,14 +143,14 @@ func setupLog() {
 		fmt.Printf("Unrecognized log level: %s, defaulting to Trace\n", logLevel)
 	}
 
-	log.Trace("Setup Logs")
+	log.Info("Setup Logs")
 }
 
 // ====================================================================
 //                           Serve Static File
 // ====================================================================
 
-// serveFiles configures static file serving for the application.
+// serveFiles configures static files serving for the application.
 //
 // Parameters:
 //   - fly (*GFly): The instance of GFly which contains the router used to serve the static files.
