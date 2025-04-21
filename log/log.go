@@ -4,14 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
-	"os"
 )
 
-var logger AllLogger = &defaultLogger{
-	stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
-	depth:  4,
-}
+var logger AllLogger = newDefaultLogger()
 
 // Logger is a logger interface that provides logging function with levels.
 type Logger interface {
@@ -142,6 +137,8 @@ type ControlLogger interface {
 	// Parameters:
 	//   - writer: The io.Writer to write logs to.
 	SetOutput(io.Writer)
+	// Close gracefully shuts down the logger, ensuring all pending messages are processed.
+	Close()
 }
 
 // AllLogger is the combination of Logger, FormatLogger, CtxLogger, and ControlLogger.
