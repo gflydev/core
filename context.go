@@ -407,8 +407,12 @@ func (c *Ctx) Success(data interface{}) error {
 //
 // Returns:
 //   - error: An error if the response generation fails, otherwise nil.
-func (c *Ctx) Error(data interface{}) error {
-	c.root.Response.SetStatusCode(StatusBadRequest)
+func (c *Ctx) Error(data interface{}, httpCode ...int) error {
+	if len(httpCode) > 0 {
+		c.root.Response.SetStatusCode(httpCode[0])
+	} else {
+		c.root.Response.SetStatusCode(StatusBadRequest)
+	}
 
 	// Set response content
 	_ = c.JSON(data)
