@@ -409,7 +409,11 @@ func (c *Ctx) Success(data interface{}) error {
 //   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) Error(data interface{}) error {
 	c.root.Response.SetStatusCode(StatusBadRequest)
-	return c.JSON(data)
+
+	// Set response content
+	_ = c.JSON(data)
+
+	return errors.UnknownError
 }
 
 // NoContent sends a response with no content.
