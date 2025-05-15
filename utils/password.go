@@ -1,11 +1,19 @@
 package utils
 
 import (
+	"github.com/gflydev/core/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // GeneratePassword func for a making hash & salt with user password.
-func GeneratePassword(p string) string {
+//
+// Parameters:
+//   - p string: The password to hash.
+//
+// Returns:
+//   - string: The hashed password.
+//   - error: An error if the password hashing fails.
+func GeneratePassword(p string) (string, error) {
 	// Normalize password from string to []byte.
 	bytePwd := UnsafeBytes(p)
 
@@ -14,12 +22,12 @@ func GeneratePassword(p string) string {
 	// you want provided it isn't lower than the MinCost (4).
 	hash, err := bcrypt.GenerateFromPassword(bytePwd, bcrypt.MinCost)
 	if err != nil {
-		return err.Error()
+		return "", errors.Wrap(err, errors.CodeInternal, "failed to generate password hash")
 	}
 
 	// GenerateFromPassword returns a byte slice so we need to
 	// convert the bytes to a string and return it.
-	return string(hash)
+	return string(hash), nil
 }
 
 // ComparePasswords func for a comparing password.

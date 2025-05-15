@@ -306,7 +306,7 @@ func TestChunk(t *testing.T) {
 		"Size zero or negative": {
 			slice:    []int{1, 2, 3, 4, 5},
 			size:     0,
-			expected: nil,
+			expected: [][]int{},
 		},
 		"Even chunks": {
 			slice:    []int{1, 2, 3, 4, 5, 6},

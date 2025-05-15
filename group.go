@@ -19,6 +19,13 @@ type IGroupMiddleware interface {
 	// Parameters:
 	// - middlewares: Variadic parameter accepting one or more middleware handlers of type MiddlewareHandler.
 	Use(middlewares ...MiddlewareHandler)
+
+	// UseWithOptions adds middleware with configuration options for all router groups.
+	// Important: This should be called at the top of the group router before defining routes.
+	// Parameters:
+	// - handler: The middleware handler to be applied to the group.
+	// - options: Configuration options for the middleware.
+	UseWithOptions(handler MiddlewareHandler, options ...MiddlewareOption)
 }
 
 // Use applies middleware for all router groups.
@@ -27,6 +34,20 @@ type IGroupMiddleware interface {
 // - middlewares: Variadic parameter accepting one or more middleware handlers of type MiddlewareHandler.
 func (g *Group) Use(middlewares ...MiddlewareHandler) {
 	g.middlewares = append(g.middlewares, middlewares...)
+}
+
+// UseWithOptions adds middleware with configuration options for all router groups.
+// This function creates a middleware configuration with the provided options and adds it to the group's middleware chain.
+// Parameters:
+// - handler: The middleware handler to be applied to the group.
+// - options: Configuration options for the middleware.
+func (g *Group) UseWithOptions(handler MiddlewareHandler, options ...MiddlewareOption) {
+	// Create a middleware configuration with the provided options
+	middleware := NewMiddleware()
+	config := middleware.Use(handler, options...)
+
+	// Convert the middleware configuration to a handler and append it to the group's middleware list
+	g.middlewares = append(g.middlewares, config.Handler)
 }
 
 // ===========================================================================================================
@@ -229,7 +250,17 @@ func (g *Group) wrapMiddlewares(handler IHandler) IHandler {
 	if len(g.middlewares) > 0 {
 		middlewareGroup := NewMiddleware()
 
-		return middlewareGroup.Group(g.middlewares...)(handler)
+		// Convert simple middleware handlers to middleware configs
+		configs := make([]MiddlewareConfig, len(g.middlewares))
+		for i, handler := range g.middlewares {
+			configs[i] = MiddlewareConfig{
+				Handler:  handler,
+				Phase:    PhasePreRequest,
+				Priority: i,
+			}
+		}
+
+		return middlewareGroup.GroupWithOptions(configs...)(handler)
 	}
 
 	return handler

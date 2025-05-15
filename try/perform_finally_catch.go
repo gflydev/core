@@ -1,5 +1,9 @@
 package try
 
+import (
+	"github.com/gflydev/core/errors"
+)
+
 // RethrowPanic is a special marker used to indicate that the original panic should be rethrown.
 // This is used internally by the Throw function when called with nil.
 const RethrowPanic = "___throw_it___"
@@ -34,6 +38,8 @@ type (
 //
 // Behavior:
 //   - If e is nil, a special RethrowPanic marker is used to indicate the original error should be used.
+//   - If e is a standard error, it will be wrapped with the appropriate gFly error type.
+//   - If e is already a gFly error, it will be used directly.
 //   - Otherwise, the provided value is directly used as the panic value.
 //
 // Example:
@@ -49,8 +55,17 @@ func Throw(e E) {
 	if e == nil {
 		// Use the special marker to indicate we should rethrow the original error
 		panic(RethrowPanic)
+	} else if stdErr, ok := e.(error); ok {
+		// Check if it's already a gFly error
+		if _, ok := stdErr.(errors.Error); !ok {
+			// Wrap standard errors with the appropriate gFly error type
+			panic(errors.Wrap(stdErr, errors.CodeInternal, "Error thrown in try-catch block"))
+		} else {
+			// It's already a gFly error, use it directly
+			panic(stdErr)
+		}
 	} else {
-		// Throw the specific error provided
+		// Throw the specific value provided (not an error)
 		panic(e)
 	}
 }
@@ -134,6 +149,7 @@ func (o *It) Finally(finallyFunc F) *It {
 //   - The final function (if registered) is always executed, even if the catch block panics.
 //   - If the catch block panics, the panic is propagated after the finally block executes.
 //   - If Throw(nil) is called in the catch block, the original error is rethrown.
+//   - Standard errors are automatically wrapped as gFly errors if they aren't already.
 //
 // Example:
 //
@@ -141,11 +157,22 @@ func (o *It) Finally(finallyFunc F) *It {
 //	    // Code that might panic
 //	}).Catch(func(e E) {
 //	    // Handle the error
-//	    log.Printf("Error: %v", e)
+//	    if gflyErr, ok := e.(errors.Error); ok {
+//	        // Handle gFly error with additional context
+//	        log.Printf("Error code: %s, Message: %s", gflyErr.Code(), gflyErr.Message())
+//	    } else {
+//	        // Handle standard error
+//	        log.Printf("Error: %v", e)
+//	    }
 //	})
 func (o *It) Catch(funcCaught EF) *It {
 	// Check if an error occurred in the try block
 	if o.Error != nil {
+		// Ensure the error is a gFly error if it's a standard error
+		if stdErr, ok := o.Error.(error); ok && !isGFlyError(stdErr) {
+			o.Error = errors.Wrap(stdErr, errors.CodeInternal, "Error caught in try-catch block")
+		}
+
 		// Set up recovery to catch any panics from the catch block
 		defer func() {
 			// Always execute the finally block if one is registered
@@ -172,4 +199,10 @@ func (o *It) Catch(funcCaught EF) *It {
 	}
 
 	return o
+}
+
+// isGFlyError checks if an error is a gFly error
+func isGFlyError(err error) bool {
+	_, ok := err.(errors.Error)
+	return ok
 }

@@ -1,3 +1,33 @@
+// Package utils provides a collection of utility functions for common operations
+// in the gFly framework. This package is organized into multiple files, each focusing
+// on a specific type of utility.
+//
+// The bytes.go file contains utilities for byte slice manipulation, including:
+//   - Generating cryptographically secure random bytes
+//   - Extending or truncating byte slices
+//   - Prepending bytes to existing slices
+//   - Copying byte slices
+//   - Comparing byte slices for equality
+//
+// These utilities are designed to be efficient, often using pooled buffers to reduce
+// memory allocations and improve performance in high-throughput applications.
+//
+// Usage Examples:
+//
+//	// Generate random bytes
+//	randomBytes := utils.RandByte(make([]byte, 16))
+//
+//	// Extend a byte slice
+//	extendedBytes := utils.ExtendByte(originalBytes, 32)
+//
+//	// Prepend bytes
+//	newBytes := utils.PrependByte(originalBytes, 0x01, 0x02, 0x03)
+//
+//	// Copy bytes
+//	bytesCopy := utils.CopyByte(originalBytes)
+//
+//	// Compare bytes
+//	areEqual := utils.EqualByte(bytes1, bytes2)
 package utils
 
 import (

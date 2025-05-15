@@ -2,10 +2,11 @@ package utils
 
 import (
 	"crypto/rand"
-	"errors"
 	"math"
 	"math/big"
 	"strconv"
+
+	"github.com/gflydev/core/errors"
 )
 
 // RandInt64 generates a cryptographically secure random integer within the range [0, m).
@@ -153,7 +154,7 @@ func SafeInt32ToInt64(value int32) int64 {
 //   - error: An error if the value is outside the int32 range.
 func SafeInt64ToInt32(value int64) (int32, error) {
 	if value > math.MaxInt32 || value < math.MinInt32 {
-		return 0, errors.New("value outside int32 range")
+		return 0, errors.InvalidInput("value outside int32 range")
 	}
 	return int32(value), nil
 }

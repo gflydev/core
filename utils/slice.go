@@ -43,7 +43,7 @@ func IndexOf[T comparable](slice []T, element T) int {
 // Returns:
 //   - []T: A new slice containing only the elements for which the predicate returns true.
 func Filter[T any](slice []T, predicate func(T) bool) []T {
-	var result []T
+	result := []T{}
 	for _, v := range slice {
 		if predicate(v) {
 			result = append(result, v)
@@ -161,10 +161,10 @@ func Unique[T comparable](slice []T) []T {
 //   - [][]T: A slice of slices, where each inner slice has at most 'size' elements.
 func Chunk[T any](slice []T, size int) [][]T {
 	if size <= 0 {
-		return nil
+		return [][]T{}
 	}
 
-	var chunks [][]T
+	chunks := [][]T{}
 	for i := 0; i < len(slice); i += size {
 		end := i + size
 		if end > len(slice) {

@@ -11,6 +11,22 @@ go mod init myweb
 go get -u github.com/gflydev/core@latest
 ```
 
+### Configuration
+
+gFly Core uses environment variables for configuration. You can set these variables in your environment or use a `.env` file in your project root.
+
+For a comprehensive list of all environment variables used by the framework, see [docs/ENVIRONMENT_VARIABLES.md](docs/ENVIRONMENT_VARIABLES.md).
+
+### Documentation
+
+gFly Core provides comprehensive documentation to help you understand and use the framework effectively:
+
+- [Architecture](docs/ARCHITECTURE.md): Overview of the framework's architecture and components
+- [Request Lifecycle](docs/REQUEST_LIFECYCLE.md): Detailed explanation of how requests are processed, with diagrams
+- [Environment Variables](docs/ENVIRONMENT_VARIABLES.md): List of all environment variables used by the framework
+- [Developer Guide](docs/DEVELOPER_GUIDE.md): Best practices for developing with gFly Core
+- [Tasks](docs/TASKS.md): Current development tasks and roadmap
+
 ### Play with gFly
 
 #### Create folder 

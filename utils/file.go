@@ -1,3 +1,40 @@
+// Package utils provides a collection of utility functions for common operations
+// in the gFly framework. This package is organized into multiple files, each focusing
+// on a specific type of utility.
+//
+// The file.go file contains utilities for file system operations, including:
+//   - Extracting file extensions and manipulating file paths
+//   - Checking if files or directories exist
+//   - Getting file sizes and modification times
+//   - Reading from and writing to files
+//   - Copying files and creating directories
+//   - Comparing file modification times
+//
+// These utilities provide a consistent error handling approach using the gFly errors
+// package, with specific error types for common file-related errors like "file not found".
+//
+// Usage Examples:
+//
+//	// Get a file extension
+//	ext := utils.FileExt("document.pdf")
+//
+//	// Check if a file exists
+//	exists := utils.FileExists("/path/to/file.txt")
+//
+//	// Read a file as string
+//	content, err := utils.ReadFileAsString("/path/to/file.txt")
+//
+//	// Write a string to a file
+//	err := utils.WriteStringToFile("/path/to/file.txt", "Hello, World!", 0644)
+//
+//	// Copy a file
+//	err := utils.CopyFile("/path/to/source.txt", "/path/to/destination.txt", 0644)
+//
+//	// Create a directory if it doesn't exist
+//	err := utils.MkdirIfNotExists("/path/to/directory", 0755)
+//
+//	// Compare file modification times
+//	isNewer, err := utils.IsFileNewer("/path/to/file1.txt", "/path/to/file2.txt")
 package utils
 
 import (
@@ -6,6 +43,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/gflydev/core/errors"
 )
 
 // FileExt extracts the extension of a file from its name or path.
@@ -112,7 +151,11 @@ func FileSize(path string) int64 {
 func ReadFileAsString(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		if os.IsNotExist(err) {
+			fileName := filepath.Base(path)
+			return "", errors.NewFileNotFound(fileName, path)
+		}
+		return "", errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to read file: %s", path))
 	}
 	return string(data), nil
 }
@@ -127,7 +170,11 @@ func ReadFileAsString(path string) (string, error) {
 // Returns:
 //   - error: An error if the file couldn't be written to.
 func WriteStringToFile(path, content string, perm os.FileMode) error {
-	return os.WriteFile(path, []byte(content), perm)
+	err := os.WriteFile(path, []byte(content), perm)
+	if err != nil {
+		return errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to write to file: %s", path))
+	}
+	return nil
 }
 
 // CopyFile copies a file from src to dst.
@@ -142,7 +189,11 @@ func WriteStringToFile(path, content string, perm os.FileMode) error {
 func CopyFile(src, dst string, perm os.FileMode) error {
 	srcFile, err := os.Open(src)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			fileName := filepath.Base(src)
+			return errors.NewFileNotFound(fileName, src)
+		}
+		return errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to open source file: %s", src))
 	}
 	defer func(srcFile *os.File) {
 		_ = srcFile.Close()
@@ -150,14 +201,17 @@ func CopyFile(src, dst string, perm os.FileMode) error {
 
 	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
-		return err
+		return errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to create destination file: %s", dst))
 	}
 	defer func(dstFile *os.File) {
 		_ = dstFile.Close()
 	}(dstFile)
 
 	_, err = io.Copy(dstFile, srcFile)
-	return err
+	if err != nil {
+		return errors.Wrap(err, errors.CodeInternal, "failed to copy file contents")
+	}
+	return nil
 }
 
 // MkdirIfNotExists creates a directory if it doesn't exist.
@@ -170,7 +224,10 @@ func CopyFile(src, dst string, perm os.FileMode) error {
 //   - error: An error if the directory couldn't be created.
 func MkdirIfNotExists(path string, perm os.FileMode) error {
 	if !DirExists(path) {
-		return os.MkdirAll(path, perm)
+		err := os.MkdirAll(path, perm)
+		if err != nil {
+			return errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to create directory: %s", path))
+		}
 	}
 	return nil
 }
@@ -186,7 +243,11 @@ func MkdirIfNotExists(path string, perm os.FileMode) error {
 func FileModTime(path string) (time.Time, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		return time.Time{}, err
+		if os.IsNotExist(err) {
+			fileName := filepath.Base(path)
+			return time.Time{}, errors.NewFileNotFound(fileName, path)
+		}
+		return time.Time{}, errors.Wrap(err, errors.CodeInternal, fmt.Sprintf("failed to get file info: %s", path))
 	}
 	return info.ModTime(), nil
 }
@@ -203,12 +264,12 @@ func FileModTime(path string) (time.Time, error) {
 func IsFileNewer(file1, file2 string) (bool, error) {
 	time1, err := FileModTime(file1)
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, errors.CodeInternal, "failed to get modification time for file: %s", file1)
 	}
 
 	time2, err := FileModTime(file2)
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(err, errors.CodeInternal, "failed to get modification time for file: %s", file2)
 	}
 
 	return time1.After(time2), nil

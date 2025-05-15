@@ -1,4 +1,4 @@
-module github.com/gflydev/core
+module github.com/gflydev/core/v2
 
 go 1.24.0
 

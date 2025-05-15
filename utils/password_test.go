@@ -18,16 +18,28 @@ func TestComparePasswords(t *testing.T) {
 		{
 			name: "Compare password TRUE",
 			args: args{
-				hashedPwd: GeneratePassword("MyPass!"),
-				inputPwd:  "MyPass!",
+				hashedPwd: func() string {
+					hash, err := GeneratePassword("MyPass!")
+					if err != nil {
+						t.Fatalf("Failed to generate password: %v", err)
+					}
+					return hash
+				}(),
+				inputPwd: "MyPass!",
 			},
 			want: true,
 		},
 		{
 			name: "Compare password FALSE",
 			args: args{
-				hashedPwd: GeneratePassword("MyPass!"),
-				inputPwd:  "YourPass!",
+				hashedPwd: func() string {
+					hash, err := GeneratePassword("MyPass!")
+					if err != nil {
+						t.Fatalf("Failed to generate password: %v", err)
+					}
+					return hash
+				}(),
+				inputPwd: "YourPass!",
 			},
 			want: false,
 		},
@@ -59,7 +71,9 @@ func TestGeneratePassword(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.NotEqualf(t, tt.want, GeneratePassword(tt.args.p), "GeneratePassword(%v)", tt.args.p)
+			hash, err := GeneratePassword(tt.args.p)
+			assert.NoError(t, err, "GeneratePassword(%v) should not return an error", tt.args.p)
+			assert.NotEqualf(t, tt.want, hash, "GeneratePassword(%v)", tt.args.p)
 		})
 	}
 }

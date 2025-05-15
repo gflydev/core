@@ -2,7 +2,9 @@ package core
 
 import (
 	"fmt"
+	"github.com/gflydev/core/container"
 	"github.com/gflydev/core/log"
+	"github.com/gflydev/core/plugin"
 	"github.com/gflydev/core/utils"
 	"github.com/valyala/fasthttp"
 )
@@ -64,6 +66,11 @@ type IFly interface {
 	//   - *Router: The root router instance.
 	Router() *Router
 
+	// Container returns the dependency injection container.
+	// Returns:
+	//   - *container.Container: The dependency injection container.
+	Container() *container.Container
+
 	// RegisterMiddleware Registers middleware hooks.
 	// Parameters:
 	//   - fn: Variadic parameter of FnHookMiddleware functions to set up global middleware.
@@ -74,9 +81,11 @@ type IFly interface {
 	//   - fn: Variadic parameter of FnHookRoute functions to set up application routes.
 	RegisterRouter(fn ...FnHookRoute)
 
-	// Inherits methods from IFlyRouter and IFlyMiddleware.
+	// Inherits methods from IFlyRouter, IFlyMiddleware, and IFlyPlugin.
+
 	IFlyRouter
 	IFlyMiddleware
+	plugin.IFlyPlugin
 }
 
 // GFly Struct defining main elements in the application.
@@ -91,6 +100,10 @@ type GFly struct {
 	middleware IMiddleware
 	// middlewares List of global middleware handlers.
 	middlewares []MiddlewareHandler
+	// container Dependency injection container for service management.
+	container *container.Container
+	// pluginManager Plugin manager for handling plugins.
+	pluginManager *plugin.Manager
 }
 
 // Router Retrieves the root router in the gFly application.
@@ -141,6 +154,11 @@ func (fly *GFly) Run() {
 
 	// --------------- Checking service  ---------------
 	// TODO: Need to add more checking
+
+	// --------------- Initialize plugins ---------------
+	if err := plugin.InitializePlugins(fly.container); err != nil {
+		log.Fatalf("Error initializing plugins: %v", err)
+	}
 
 	// --------------- Global middlewares  ---------------
 	for _, fn := range fnHookMiddlewares {
@@ -203,10 +221,14 @@ func (fly *GFly) errorHandler(ctx *fasthttp.RequestCtx, err error) {
 // Returns:
 //   - IFly: Instance of gFly application.
 func New(config ...Config) IFly {
+	// Create a new dependency injection container
+	diContainer := container.New()
+
 	// Create a new GFly instance with initialized router and middleware.
 	app := &GFly{
 		router:     NewRouter(),     // Instantiate a new Router for the app.
 		middleware: NewMiddleware(), // Instantiate a new Middleware manager for the app.
+		container:  diContainer,     // Instantiate a new dependency injection container.
 	}
 
 	// Override default configuration if additional config is provided.
@@ -215,6 +237,12 @@ func New(config ...Config) IFly {
 	} else {
 		app.config = DefaultConfig // Otherwise, use the default configuration.
 	}
+
+	// Register core services in the container
+	app.registerCoreServices()
+
+	// Initialize the plugin manager
+	app.pluginManager = plugin.NewManager(diContainer)
 
 	return app // Return the initialized gFly application instance.
 }
@@ -233,6 +261,35 @@ func (fly *GFly) RegisterRouter(fn ...FnHookRoute) {
 	fnHookRoutes = fn // Assign provided route hooks to the global list.
 }
 
+// registerCoreServices registers the core services of the framework in the container.
+func (fly *GFly) registerCoreServices() {
+	// Register the router
+	_ = container.RegisterInstance[*Router](fly.container, fly.router)
+
+	// Register the middleware manager
+	_ = container.RegisterInstance[IMiddleware](fly.container, fly.middleware)
+
+	// Register the application itself
+	_ = container.RegisterInstance[IFly](fly.container, fly)
+
+	// Register the configuration
+	_ = container.RegisterInstance[Config](fly.container, fly.config)
+
+	// Register the logger (using the default logger)
+	_ = container.RegisterInstance[log.AllLogger](fly.container, log.DefaultLogger())
+
+	// Register the plugin manager
+	_ = plugin.RegisterPluginManager(fly.container)
+}
+
+// Container returns the dependency injection container.
+//
+// Returns:
+//   - *container.Container: The dependency injection container.
+func (fly *GFly) Container() *container.Container {
+	return fly.container
+}
+
 // ====================================================================
 //                        gFly - Middleware methods
 // ====================================================================
@@ -245,6 +302,13 @@ type IFlyMiddleware interface {
 	//   - middlewares ([]MiddlewareHandler): One or more middleware handlers to be applied globally.
 	Use(middlewares ...MiddlewareHandler)
 
+	// UseWithOptions adds middleware with configuration options for global (all requests).
+	//
+	// Parameters:
+	//   - handler (MiddlewareHandler): The middleware handler to be applied globally.
+	//   - options ([]MiddlewareOption): Configuration options for the middleware.
+	UseWithOptions(handler MiddlewareHandler, options ...MiddlewareOption)
+
 	// Middleware creates a middleware chain handler for grouping.
 	//
 	// Parameters:
@@ -253,6 +317,15 @@ type IFlyMiddleware interface {
 	// Returns:
 	//   - func(IHandler) IHandler: A function that applies the middleware handlers to an IHandler.
 	Middleware(middleware ...MiddlewareHandler) func(IHandler) IHandler
+
+	// MiddlewareWithOptions creates a middleware chain handler with configuration options.
+	//
+	// Parameters:
+	//   - configs ([]MiddlewareConfig): Middleware configurations to be grouped.
+	//
+	// Returns:
+	//   - func(IHandler) IHandler: A function that applies the middleware handlers to an IHandler.
+	MiddlewareWithOptions(configs ...MiddlewareConfig) func(IHandler) IHandler
 }
 
 // Use adds middleware for global (all requests).
@@ -266,6 +339,23 @@ type IFlyMiddleware interface {
 func (fly *GFly) Use(middlewares ...MiddlewareHandler) {
 	// Append the provided middleware handlers to the global middleware list.
 	fly.middlewares = append(fly.middlewares, middlewares...)
+}
+
+// UseWithOptions adds middleware with configuration options for global (all requests).
+//
+// Example usage:
+//
+//	fly.UseWithOptions(authMiddleware, WithName("auth"), WithPriority(1))
+//
+// Parameters:
+//   - handler (MiddlewareHandler): The middleware handler to be applied globally.
+//   - options ([]MiddlewareOption): Configuration options for the middleware.
+func (fly *GFly) UseWithOptions(handler MiddlewareHandler, options ...MiddlewareOption) {
+	// Create a middleware configuration with the provided options
+	config := fly.middleware.Use(handler, options...)
+
+	// Convert the middleware configuration to a handler and append it to the global middleware list
+	fly.middlewares = append(fly.middlewares, config.Handler)
 }
 
 // Middleware creates a middleware chain handler for grouping.
@@ -282,6 +372,24 @@ func (fly *GFly) Use(middlewares ...MiddlewareHandler) {
 func (fly *GFly) Middleware(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
 	// Group the provided middleware handlers and return a function for applying them to an IHandler.
 	return fly.middleware.Group(middlewares...)
+}
+
+// MiddlewareWithOptions creates a middleware chain handler with configuration options.
+//
+// Example usage:
+//
+//	authConfig := fly.middleware.Use(authMiddleware, WithName("auth"), WithPriority(1))
+//	logConfig := fly.middleware.Use(logMiddleware, WithName("log"), WithPhase(PhasePostRequest))
+//	group.POST("/one", fly.MiddlewareWithOptions(authConfig, logConfig)(api.NewDefaultApi()))
+//
+// Parameters:
+//   - configs ([]MiddlewareConfig): Middleware configurations to be grouped.
+//
+// Returns:
+//   - func(IHandler) IHandler: A function that applies the middleware handlers to an IHandler.
+func (fly *GFly) MiddlewareWithOptions(configs ...MiddlewareConfig) func(IHandler) IHandler {
+	// Group the provided middleware configurations and return a function for applying them to an IHandler.
+	return fly.middleware.GroupWithOptions(configs...)
 }
 
 // ====================================================================
@@ -446,8 +554,44 @@ func (fly *GFly) wrapMiddlewares(handler IHandler) IHandler {
 	if len(fly.middlewares) > 0 {
 		middlewareGroup := NewMiddleware()
 
-		return middlewareGroup.Group(fly.middlewares...)(handler)
+		// Convert simple middleware handlers to middleware configs
+		configs := make([]MiddlewareConfig, len(fly.middlewares))
+		for i, handler := range fly.middlewares {
+			configs[i] = MiddlewareConfig{
+				Handler:  handler,
+				Phase:    PhasePreRequest,
+				Priority: i,
+			}
+		}
+
+		return middlewareGroup.GroupWithOptions(configs...)(handler)
 	}
 
 	return handler
+}
+
+// ====================================================================
+//                        gFly - Plugin methods
+// ====================================================================
+
+// RegisterPlugin registers a plugin with the application.
+// It returns an error if the plugin cannot be registered.
+func (fly *GFly) RegisterPlugin(plugin plugin.Plugin) error {
+	return fly.pluginManager.Register(plugin)
+}
+
+// GetPlugin returns a plugin by name.
+// It returns nil if the plugin is not found.
+func (fly *GFly) GetPlugin(name string) plugin.Plugin {
+	return fly.pluginManager.GetPlugin(name)
+}
+
+// GetPlugins returns all registered plugins.
+func (fly *GFly) GetPlugins() map[string]plugin.Plugin {
+	return fly.pluginManager.GetPlugins()
+}
+
+// PluginManager returns the plugin manager.
+func (fly *GFly) PluginManager() *plugin.Manager {
+	return fly.pluginManager
 }

@@ -6,16 +6,47 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/gflydev/core/errors"
 	"github.com/valyala/bytebufferpool"
 )
 
 var _ AllLogger = (*defaultLogger)(nil)
 
 type defaultLogger struct {
-	stdLog *log.Logger // The underlying standard logger used for output
-	level  Level       // The current log level
-	depth  int         // The call depth for logging
+	stdLog           *log.Logger         // The underlying standard logger used for output
+	level            Level               // The current log level
+	depth            int                 // The call depth for logging
+	structuredLogger *StructuredLogger   // The structured logger for structured output
+	formatter        StructuredFormatter // The formatter for structured output
+}
+
+// formatGFlyError formats a gFly error with additional context information
+// Parameters:
+//   - err: The error to format
+//
+// Returns:
+//   - string: The formatted error message
+//   - bool: True if the error was a gFly error, false otherwise
+func formatGFlyError(err interface{}) (string, bool) {
+	if gflyErr, ok := err.(errors.Error); ok {
+		var sb strings.Builder
+		sb.WriteString(gflyErr.Error())
+		sb.WriteString(" [code=")
+		sb.WriteString(gflyErr.Code())
+		sb.WriteString("]")
+
+		// Add stack trace if available
+		stackTrace := gflyErr.StackTrace()
+		if stackTrace != "" {
+			sb.WriteString("\nStack trace:\n")
+			sb.WriteString(stackTrace)
+		}
+
+		return sb.String(), true
+	}
+	return "", false
 }
 
 // privateLog logs a message at a given level using the default logger. It uses a buffer pool to optimize memory usage.
@@ -29,9 +60,22 @@ func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
 		return
 	}
 	level := lv.toString()
-	buf := bytebufferpool.Get()        // Borrow a buffer from the bytebufferpool
-	_, _ = buf.WriteString(level)      // It is fine to ignore the error
-	_, _ = fmt.Fprint(buf, fmtArgs...) // It is fine to ignore the error
+	buf := bytebufferpool.Get()   // Borrow a buffer from the bytebufferpool
+	_, _ = buf.WriteString(level) // It is fine to ignore the error
+
+	// Check for gFly errors in the arguments
+	for i, arg := range fmtArgs {
+		if i > 0 {
+			_, _ = buf.WriteString(" ")
+		}
+
+		// Format gFly errors with additional context
+		if formattedErr, isGFlyErr := formatGFlyError(arg); isGFlyErr {
+			_, _ = buf.WriteString(formattedErr)
+		} else {
+			_, _ = fmt.Fprint(buf, arg)
+		}
+	}
 
 	_ = l.stdLog.Output(l.depth, buf.String()) // Use the standard logger to output the constructed message
 	buf.Reset()                                // Reset the buffer for reuse
@@ -56,8 +100,18 @@ func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface
 	buf := bytebufferpool.Get()   // Borrow a buffer from the bytebufferpool
 	_, _ = buf.WriteString(level) // It is fine to ignore the error
 
+	// Process arguments to handle gFly errors
+	processedArgs := make([]interface{}, len(fmtArgs))
+	for i, arg := range fmtArgs {
+		if formattedErr, isGFlyErr := formatGFlyError(arg); isGFlyErr {
+			processedArgs[i] = formattedErr
+		} else {
+			processedArgs[i] = arg
+		}
+	}
+
 	if len(fmtArgs) > 0 {
-		_, _ = fmt.Fprintf(buf, format, fmtArgs...)
+		_, _ = fmt.Fprintf(buf, format, processedArgs...)
 	} else {
 		_, _ = buf.WriteString(format) // Just write the format string if no args
 	}
@@ -80,6 +134,15 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 	if l.level > lv {
 		return
 	}
+
+	// Use structured logging if enabled
+	if l.structuredLogger != nil && l.structuredLogger.IsStructuredLoggingEnabled() {
+		fields := parseKeyValuePairs(keysAndValues)
+		l.structuredLogger.logStructured(lv, format, fields)
+		return
+	}
+
+	// Fall back to traditional logging
 	level := lv.toString()
 	buf := bytebufferpool.Get()   // Borrow a buffer from the bytebufferpool
 	_, _ = buf.WriteString(level) // It is fine to ignore the error
@@ -106,7 +169,16 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 			if i > 0 {
 				_, _ = buf.WriteString(" ") // Add space between pairs
 			}
-			_, _ = fmt.Fprintf(buf, "%s=%v", keysAndValues[i], keysAndValues[i+1])
+
+			key := keysAndValues[i]
+			value := keysAndValues[i+1]
+
+			// Format gFly errors with additional context
+			if formattedErr, isGFlyErr := formatGFlyError(value); isGFlyErr {
+				_, _ = fmt.Fprintf(buf, "%s=%s", key, formattedErr)
+			} else {
+				_, _ = fmt.Fprintf(buf, "%s=%v", key, value)
+			}
 		}
 	}
 
@@ -355,9 +427,56 @@ func (l *defaultLogger) SetOutput(writer io.Writer) {
 	l.stdLog.SetOutput(writer)
 }
 
+// newDefaultLogger creates a new default logger instance.
+// Parameters: None
+// Returns: (*defaultLogger) A new default logger instance.
+func newDefaultLogger() *defaultLogger {
+	dl := &defaultLogger{
+		stdLog:    log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
+		depth:     4,
+		formatter: NewJSONFormatter(),
+	}
+	dl.structuredLogger = NewStructuredLogger(dl, dl.formatter)
+	return dl
+}
+
 // DefaultLogger returns the default logger instance.
 // Parameters: None
 // Returns: (AllLogger) The default logger instance.
 func DefaultLogger() AllLogger {
 	return logger
+}
+
+// EnableStructuredLogging enables or disables structured logging.
+// Parameters:
+//   - enabled: Whether to enable structured logging.
+//
+// Returns: None
+func (l *defaultLogger) EnableStructuredLogging(enabled bool) {
+	if l.structuredLogger != nil {
+		l.structuredLogger.EnableStructuredLogging(enabled)
+	}
+}
+
+// IsStructuredLoggingEnabled returns whether structured logging is enabled.
+// Parameters: None
+//
+// Returns: (bool) Whether structured logging is enabled.
+func (l *defaultLogger) IsStructuredLoggingEnabled() bool {
+	if l.structuredLogger != nil {
+		return l.structuredLogger.IsStructuredLoggingEnabled()
+	}
+	return false
+}
+
+// SetFormatter sets the formatter for structured logging.
+// Parameters:
+//   - formatter: The formatter to use for structured logging.
+//
+// Returns: None
+func (l *defaultLogger) SetFormatter(formatter StructuredFormatter) {
+	l.formatter = formatter
+	if l.structuredLogger != nil {
+		l.structuredLogger.SetFormatter(formatter)
+	}
 }

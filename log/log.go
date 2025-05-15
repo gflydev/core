@@ -8,10 +8,7 @@ import (
 	"os"
 )
 
-var logger AllLogger = &defaultLogger{
-	stdLog: log.New(os.Stderr, "", log.LstdFlags|log.Lshortfile|log.Lmicroseconds),
-	depth:  4,
-}
+var logger AllLogger = newDefaultLogger()
 
 // Logger is a logger interface that provides logging function with levels.
 type Logger interface {
@@ -144,11 +141,29 @@ type ControlLogger interface {
 	SetOutput(io.Writer)
 }
 
-// AllLogger is the combination of Logger, FormatLogger, CtxLogger, and ControlLogger.
+// StructuredLoggerControl provides methods to configure structured logging.
+type StructuredLoggerControl interface {
+	// EnableStructuredLogging enables or disables structured logging.
+	// Parameters:
+	//   - enabled: Whether to enable structured logging.
+	EnableStructuredLogging(enabled bool)
+	// IsStructuredLoggingEnabled returns whether structured logging is enabled.
+	// Parameters: None
+	//
+	// Returns: (bool) Whether structured logging is enabled.
+	IsStructuredLoggingEnabled() bool
+	// SetFormatter sets the formatter for structured logging.
+	// Parameters:
+	//   - formatter: The formatter to use for structured logging.
+	SetFormatter(formatter StructuredFormatter)
+}
+
+// AllLogger is the combination of Logger, FormatLogger, CtxLogger, ControlLogger, and StructuredLoggerControl.
 // Custom extensions can be made through AllLogger.
 type AllLogger interface {
 	CommonLogger
 	ControlLogger
+	StructuredLoggerControl
 	// WithContext returns a logger that is associated with a given context.
 	// Parameters:
 	//   - ctx: The context to associate with the logger.

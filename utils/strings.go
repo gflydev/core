@@ -1,3 +1,42 @@
+// Package utils provides a collection of utility functions for common operations
+// in the gFly framework. This package is organized into multiple files, each focusing
+// on a specific type of utility.
+//
+// The strings.go file contains utilities for string manipulation, including:
+//   - Converting between strings and byte slices without allocations
+//   - Checking if a string is present in a slice of strings
+//   - Finding the index of a string in a slice
+//   - Escaping special characters in strings
+//   - Truncating strings with optional ellipsis
+//   - Checking if strings are empty or blank
+//   - Converting strings to different case formats (camelCase, PascalCase, snake_case)
+//
+// Many of these utilities are optimized for performance, using techniques like
+// unsafe pointers for zero-allocation conversions where appropriate.
+//
+// Usage Examples:
+//
+//	// Convert between strings and bytes without allocation
+//	bytes := utils.UnsafeBytes(myString)
+//	str := utils.UnsafeStr(myBytes)
+//
+//	// Create a copy of a string
+//	strCopy := utils.CopyStr(myString)
+//
+//	// Check if a string is in a slice
+//	isIncluded := utils.IncludeStr(mySlice, "search")
+//
+//	// Truncate a string
+//	truncated := utils.Truncate(longString, 50, true)
+//
+//	// Check if a string is empty or contains only whitespace
+//	isEmpty := utils.IsEmpty(myString)
+//	isBlank := utils.IsBlank(myString)
+//
+//	// Convert string case
+//	camel := utils.ToCamelCase("my-variable-name")
+//	pascal := utils.ToPascalCase("my-class-name")
+//	snake := utils.ToSnakeCase("MyMethodName")
 package utils
 
 import (
