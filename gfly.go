@@ -75,6 +75,7 @@ type IFly interface {
 	RegisterRouter(fn ...FnHookRoute)
 
 	// Inherits methods from IFlyRouter and IFlyMiddleware.
+
 	IFlyRouter
 	IFlyMiddleware
 }
@@ -245,14 +246,16 @@ type IFlyMiddleware interface {
 	//   - middlewares ([]MiddlewareHandler): One or more middleware handlers to be applied globally.
 	Use(middlewares ...MiddlewareHandler)
 
-	// Middleware creates a middleware chain handler for grouping.
+	// Arrest creates an Interceptor chain handler for a specific handler.
+	//
+	// Note: Interceptors have access to response/request before and after the route handler is called
 	//
 	// Parameters:
 	//   - middleware ([]MiddlewareHandler): Middleware handlers to be grouped.
 	//
 	// Returns:
-	//   - func(IHandler) IHandler: A function that applies the middleware handlers to an IHandler.
-	Middleware(middleware ...MiddlewareHandler) func(IHandler) IHandler
+	//   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
+	Arrest(middleware ...MiddlewareHandler) func(IHandler) IHandler
 }
 
 // Use adds middleware for global (all requests).
@@ -268,18 +271,18 @@ func (fly *GFly) Use(middlewares ...MiddlewareHandler) {
 	fly.middlewares = append(fly.middlewares, middlewares...)
 }
 
-// Middleware creates a middleware chain handler for grouping.
+// Arrest creates an Interceptor chain handler for a specific handler.
 //
 // Example usage:
 //
-//	group.POST("/one", gfly.IFly.Middleware(middleware.RuleMiddlewareFunc)(api.NewDefaultApi()))
+//	group.POST("/one", group.Arrest(middleware.RuleMiddlewareFunc)(api.NewDefaultApi()))
 //
 // Parameters:
 //   - middlewares ([]MiddlewareHandler): Middleware handlers to be grouped.
 //
 // Returns:
-//   - func(IHandler) IHandler: A function that applies the grouped middleware handlers to an IHandler.
-func (fly *GFly) Middleware(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
+//   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
+func (fly *GFly) Arrest(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
 	// Group the provided middleware handlers and return a function for applying them to an IHandler.
 	return fly.middleware.Group(middlewares...)
 }

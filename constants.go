@@ -7,7 +7,7 @@ package core
 // Version of the current gFly application
 const (
 	// Version indicates the version of the framework
-	Version = "v1.15.1"
+	Version = "v1.15.2"
 )
 
 // ====================================================================
