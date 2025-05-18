@@ -291,10 +291,11 @@ type IResponse interface {
 	//
 	// Parameters:
 	//   - data (any): The data to include in the JSON response.
+	//   - httpCode (...int): Optional HTTP status code to set (default: 400 Bad Request).
 	//
 	// Returns:
 	//   - error: An error if the response generation fails, otherwise nil.
-	Error(data any) error
+	Error(data any, httpCode ...int) error
 
 	// NoContent sends a response with no content.
 	//
@@ -408,7 +409,7 @@ func (c *Ctx) Success(data any) error {
 //
 // Returns:
 //   - error: An error if the response generation fails, otherwise nil.
-func (c *Ctx) ErrorWithCode(data any, httpCode ...int) error {
+func (c *Ctx) Error(data any, httpCode ...int) error {
 	if len(httpCode) > 0 {
 		c.root.Response.SetStatusCode(httpCode[0])
 	} else {
@@ -419,17 +420,6 @@ func (c *Ctx) ErrorWithCode(data any, httpCode ...int) error {
 	_ = c.JSONAny(data)
 
 	return errors.UnknownError
-}
-
-// Error sends an error JSON response with the default HTTP status code (400 Bad Request).
-//
-// Parameters:
-//   - data (any): The data to include in the JSON response.
-//
-// Returns:
-//   - error: An error if the response generation fails, otherwise nil.
-func (c *Ctx) Error(data any) error {
-	return c.ErrorWithCode(data)
 }
 
 // NoContent sends a response with no content.
