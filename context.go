@@ -398,10 +398,10 @@ type IResponse interface {
 //   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) Success(data any) error {
 	c.root.Response.SetStatusCode(StatusOK)
-	return c.JSONAny(data)
+	return c.JSON(data)
 }
 
-// ErrorWithCode sends an error JSON response with a specific HTTP status code.
+// Error sends an error JSON response with a specific HTTP status code.
 //
 // Parameters:
 //   - data (any): The data to include in the JSON response.
@@ -417,7 +417,7 @@ func (c *Ctx) Error(data any, httpCode ...int) error {
 	}
 
 	// Set response content
-	_ = c.JSONAny(data)
+	_ = c.JSON(data)
 
 	return errors.UnknownError
 }
@@ -457,18 +457,7 @@ func (c *Ctx) View(template string, data Data) error {
 //
 // Returns:
 //   - error: An error if the JSON serialization or sending the response fails.
-func (c *Ctx) JSON(data Data) error {
-	return c.JSONAny(data)
-}
-
-// JSONAny serializes any data into JSON and sends it as the HTTP response.
-//
-// Parameters:
-//   - data (any): The data to serialize into JSON.
-//
-// Returns:
-//   - error: An error if the JSON serialization or sending the response fails.
-func (c *Ctx) JSONAny(data any) error {
+func (c *Ctx) JSON(data any) error {
 	c.root.Response.Header.SetContentType(MIMEApplicationJSONCharsetUTF8)
 
 	marshal, err := json.Marshal(data)
