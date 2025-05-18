@@ -246,7 +246,7 @@ type IFlyMiddleware interface {
 	//   - middlewares ([]MiddlewareHandler): One or more middleware handlers to be applied globally.
 	Use(middlewares ...MiddlewareHandler)
 
-	// Arrest creates an Interceptor chain handler for a specific handler.
+	// Apply creates an Interceptor chain handler for a specific handler.
 	//
 	// Note: Interceptors have access to response/request before and after the route handler is called
 	//
@@ -255,7 +255,7 @@ type IFlyMiddleware interface {
 	//
 	// Returns:
 	//   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
-	Arrest(middleware ...MiddlewareHandler) func(IHandler) IHandler
+	Apply(middleware ...MiddlewareHandler) func(IHandler) IHandler
 }
 
 // Use adds middleware for global (all requests).
@@ -271,18 +271,18 @@ func (fly *GFly) Use(middlewares ...MiddlewareHandler) {
 	fly.middlewares = append(fly.middlewares, middlewares...)
 }
 
-// Arrest creates an Interceptor chain handler for a specific handler.
+// Apply creates an Interceptor chain handler for a specific handler.
 //
 // Example usage:
 //
-//	group.POST("/one", group.Arrest(middleware.RuleMiddlewareFunc)(api.NewDefaultApi()))
+//	group.POST("/one", group.Apply(middleware.RuleMiddlewareFunc)(api.NewDefaultApi()))
 //
 // Parameters:
 //   - middlewares ([]MiddlewareHandler): Middleware handlers to be grouped.
 //
 // Returns:
 //   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
-func (fly *GFly) Arrest(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
+func (fly *GFly) Apply(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
 	// Group the provided middleware handlers and return a function for applying them to an IHandler.
 	return fly.middleware.Group(middlewares...)
 }
