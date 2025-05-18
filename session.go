@@ -10,7 +10,7 @@ type ISession interface {
 	//  - c: The context object used to manage session information.
 	//  - key: The key to associate with the value.
 	//  - value: The value to store in the session.
-	Set(c *Ctx, key string, value interface{})
+	Set(c *Ctx, key string, value any)
 
 	// Get retrieves a value from the session associated with the given key.
 	// Parameters:
@@ -18,7 +18,7 @@ type ISession interface {
 	//  - key: The key associated with the value to retrieve.
 	// Returns:
 	//  The value stored in the session, or nil if not found.
-	Get(c *Ctx, key string) interface{}
+	Get(c *Ctx, key string) any
 }
 
 // ====================================================================
@@ -35,7 +35,7 @@ type DefaultSession struct {
 //   - c: The context object used to manage session information.
 //   - key: The key to associate with the value.
 //   - value: The value to store in the session.
-func (v *DefaultSession) Set(c *Ctx, key string, value interface{}) {
+func (v *DefaultSession) Set(c *Ctx, key string, value any) {
 	panic(sessionError)
 }
 
@@ -47,7 +47,7 @@ func (v *DefaultSession) Set(c *Ctx, key string, value interface{}) {
 // Returns:
 //
 //	The value stored in the session, or nil if not found.
-func (v *DefaultSession) Get(c *Ctx, key string) interface{} {
+func (v *DefaultSession) Get(c *Ctx, key string) any {
 	panic(sessionError)
 }
 

@@ -53,12 +53,11 @@ func Test_New(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var err error
 
-			// How do I determine whether an array contains
-			switch tt.args.(type) {
+			switch args := tt.args.(type) {
 			case []string, []int:
 				err = New(tt.format, utils.UnpackArray(tt.args)...)
 			case FileNotFound:
-				err = tt.args.(FileNotFound)
+				err = args
 			default:
 				err = New(tt.format, tt.args)
 			}

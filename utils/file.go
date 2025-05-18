@@ -110,7 +110,7 @@ func FileSize(path string) int64 {
 //   - string: The contents of the file as a string.
 //   - error: An error if the file couldn't be read.
 func ReadFileAsString(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return "", err
 	}
@@ -140,7 +140,7 @@ func WriteStringToFile(path, content string, perm os.FileMode) error {
 // Returns:
 //   - error: An error if the file couldn't be copied.
 func CopyFile(src, dst string, perm os.FileMode) error {
-	srcFile, err := os.Open(src)
+	srcFile, err := os.Open(filepath.Clean(src))
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,8 @@ func CopyFile(src, dst string, perm os.FileMode) error {
 		_ = srcFile.Close()
 	}(srcFile)
 
-	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	// #nosec G304
+	dstFile, err := os.OpenFile(filepath.Clean(dst), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
 		return err
 	}

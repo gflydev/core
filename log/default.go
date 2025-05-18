@@ -24,7 +24,7 @@ type defaultLogger struct {
 //   - fmtArgs: The arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
+func (l *defaultLogger) privateLog(lv Level, fmtArgs []any) {
 	if l.level > lv {
 		return
 	}
@@ -48,7 +48,7 @@ func (l *defaultLogger) privateLog(lv Level, fmtArgs []interface{}) {
 //   - fmtArgs: The arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface{}) {
+func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []any) {
 	if l.level > lv {
 		return
 	}
@@ -76,7 +76,7 @@ func (l *defaultLogger) privateLogf(lv Level, format string, fmtArgs []interface
 //   - keysAndValues: Key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []interface{}) {
+func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []any) {
 	if l.level > lv {
 		return
 	}
@@ -123,7 +123,7 @@ func (l *defaultLogger) privateLogw(lv Level, format string, keysAndValues []int
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Trace(v ...interface{}) {
+func (l *defaultLogger) Trace(v ...any) {
 	l.privateLog(LevelTrace, v)
 }
 
@@ -132,7 +132,7 @@ func (l *defaultLogger) Trace(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Debug(v ...interface{}) {
+func (l *defaultLogger) Debug(v ...any) {
 	l.privateLog(LevelDebug, v)
 }
 
@@ -141,7 +141,7 @@ func (l *defaultLogger) Debug(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Info(v ...interface{}) {
+func (l *defaultLogger) Info(v ...any) {
 	l.privateLog(LevelInfo, v)
 }
 
@@ -150,7 +150,7 @@ func (l *defaultLogger) Info(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Warn(v ...interface{}) {
+func (l *defaultLogger) Warn(v ...any) {
 	l.privateLog(LevelWarn, v)
 }
 
@@ -159,7 +159,7 @@ func (l *defaultLogger) Warn(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Error(v ...interface{}) {
+func (l *defaultLogger) Error(v ...any) {
 	l.privateLog(LevelError, v)
 }
 
@@ -168,7 +168,7 @@ func (l *defaultLogger) Error(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Fatal(v ...interface{}) {
+func (l *defaultLogger) Fatal(v ...any) {
 	l.privateLog(LevelFatal, v)
 }
 
@@ -178,7 +178,7 @@ func (l *defaultLogger) Fatal(v ...interface{}) {
 //   - v: Variadic arguments to be logged.
 //
 // Returns: None
-func (l *defaultLogger) Panic(v ...interface{}) {
+func (l *defaultLogger) Panic(v ...any) {
 	l.privateLog(LevelPanic, v)
 }
 
@@ -188,7 +188,7 @@ func (l *defaultLogger) Panic(v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Tracef(format string, v ...interface{}) {
+func (l *defaultLogger) Tracef(format string, v ...any) {
 	l.privateLogf(LevelTrace, format, v)
 }
 
@@ -198,7 +198,7 @@ func (l *defaultLogger) Tracef(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Debugf(format string, v ...interface{}) {
+func (l *defaultLogger) Debugf(format string, v ...any) {
 	l.privateLogf(LevelDebug, format, v)
 }
 
@@ -208,7 +208,7 @@ func (l *defaultLogger) Debugf(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Infof(format string, v ...interface{}) {
+func (l *defaultLogger) Infof(format string, v ...any) {
 	l.privateLogf(LevelInfo, format, v)
 }
 
@@ -218,7 +218,7 @@ func (l *defaultLogger) Infof(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Warnf(format string, v ...interface{}) {
+func (l *defaultLogger) Warnf(format string, v ...any) {
 	l.privateLogf(LevelWarn, format, v)
 }
 
@@ -228,7 +228,7 @@ func (l *defaultLogger) Warnf(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Errorf(format string, v ...interface{}) {
+func (l *defaultLogger) Errorf(format string, v ...any) {
 	l.privateLogf(LevelError, format, v)
 }
 
@@ -238,7 +238,7 @@ func (l *defaultLogger) Errorf(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Fatalf(format string, v ...interface{}) {
+func (l *defaultLogger) Fatalf(format string, v ...any) {
 	l.privateLogf(LevelFatal, format, v)
 }
 
@@ -249,7 +249,7 @@ func (l *defaultLogger) Fatalf(format string, v ...interface{}) {
 //   - v: Variadic arguments for the format string.
 //
 // Returns: None
-func (l *defaultLogger) Panicf(format string, v ...interface{}) {
+func (l *defaultLogger) Panicf(format string, v ...any) {
 	l.privateLogf(LevelPanic, format, v)
 }
 
@@ -259,7 +259,7 @@ func (l *defaultLogger) Panicf(format string, v ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Tracew(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Tracew(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelTrace, msg, keysAndValues)
 }
 
@@ -269,7 +269,7 @@ func (l *defaultLogger) Tracew(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Debugw(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Debugw(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelDebug, msg, keysAndValues)
 }
 
@@ -279,7 +279,7 @@ func (l *defaultLogger) Debugw(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Infow(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Infow(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelInfo, msg, keysAndValues)
 }
 
@@ -289,7 +289,7 @@ func (l *defaultLogger) Infow(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Warnw(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Warnw(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelWarn, msg, keysAndValues)
 }
 
@@ -299,7 +299,7 @@ func (l *defaultLogger) Warnw(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Errorw(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Errorw(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelError, msg, keysAndValues)
 }
 
@@ -309,7 +309,7 @@ func (l *defaultLogger) Errorw(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Fatalw(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Fatalw(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelFatal, msg, keysAndValues)
 }
 
@@ -320,7 +320,7 @@ func (l *defaultLogger) Fatalw(msg string, keysAndValues ...interface{}) {
 //   - keysAndValues: Variadic key-value pairs to include in the log.
 //
 // Returns: None
-func (l *defaultLogger) Panicw(msg string, keysAndValues ...interface{}) {
+func (l *defaultLogger) Panicw(msg string, keysAndValues ...any) {
 	l.privateLogw(LevelPanic, msg, keysAndValues)
 }
 

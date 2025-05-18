@@ -104,7 +104,7 @@ type Router struct {
 	// 500 (Internal Server Error).
 	// The handler can be used to keep your server from crashing because of
 	// unrecoverable panics.
-	PanicHandler func(*Ctx, interface{})
+	PanicHandler func(*Ctx, any)
 
 	// globalAllowed caches allowed methods for server-wide requests (e.g., for OPTIONS requests on "*").
 	globalAllowed string
@@ -129,7 +129,7 @@ func NewRouter() *Router {
 		RedirectFixedPath:      true,
 		HandleMethodNotAllowed: true,
 		HandleOPTIONS:          true,
-		PanicHandler: func(ctx *Ctx, data interface{}) {
+		PanicHandler: func(ctx *Ctx, data any) {
 			log.Errorf("%v", data)
 		},
 		GlobalOPTIONS: func(ctx *Ctx) error {

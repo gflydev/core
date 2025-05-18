@@ -88,12 +88,12 @@ func TestFilter(t *testing.T) {
 		"Empty slice": {
 			slice:     []int{},
 			predicate: func(n int) bool { return n > 3 },
-			expected:  []int{},
+			expected:  nil,
 		},
 		"No matches": {
 			slice:     []int{1, 2, 3},
 			predicate: func(n int) bool { return n > 3 },
-			expected:  []int{},
+			expected:  nil,
 		},
 		"Some matches": {
 			slice:     []int{1, 2, 3, 4, 5},
@@ -123,12 +123,12 @@ func TestMap(t *testing.T) {
 	}{
 		"Empty slice": {
 			slice:    []int{},
-			mapper:   func(n int) string { return strconv.Itoa(n) },
+			mapper:   strconv.Itoa,
 			expected: []string{},
 		},
 		"Transform integers to strings": {
 			slice:    []int{1, 2, 3},
-			mapper:   func(n int) string { return strconv.Itoa(n) },
+			mapper:   strconv.Itoa,
 			expected: []string{"1", "2", "3"},
 		},
 		"Double integers": {
@@ -301,7 +301,7 @@ func TestChunk(t *testing.T) {
 		"Empty slice": {
 			slice:    []int{},
 			size:     2,
-			expected: [][]int{},
+			expected: nil,
 		},
 		"Size zero or negative": {
 			slice:    []int{1, 2, 3, 4, 5},

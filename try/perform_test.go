@@ -52,7 +52,7 @@ func TestPerform_PanicInTry(t *testing.T) {
 	// Test cases for panics in the try block
 	tests := map[string]struct {
 		withFinally bool
-		panicValue  interface{}
+		panicValue  any
 	}{
 		"String panic without finally": {
 			withFinally: false,
@@ -72,7 +72,7 @@ func TestPerform_PanicInTry(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			calledFinally := false
 			calledCatch := false
-			var caughtError interface{}
+			var caughtError any
 
 			it := Perform(func() {
 				panic(tt.panicValue)
@@ -100,8 +100,8 @@ func TestPerform_PanicInCatch(t *testing.T) {
 	// Test cases for panics in the catch block
 	tests := map[string]struct {
 		withFinally     bool
-		tryPanicValue   interface{}
-		catchPanicValue interface{}
+		tryPanicValue   any
+		catchPanicValue any
 	}{
 		"Without finally": {
 			withFinally:     false,
@@ -152,8 +152,8 @@ func TestPerform_Throw(t *testing.T) {
 	// Test cases for using Throw
 	tests := map[string]struct {
 		withFinally bool
-		throwValue  interface{}
-		expected    interface{}
+		throwValue  any
+		expected    any
 	}{
 		"Throw nil (rethrow original)": {
 			withFinally: true,
@@ -204,7 +204,7 @@ func TestPerform_PanicInFinally(t *testing.T) {
 	// Test cases for panics in the finally block
 	tests := map[string]struct {
 		tryPanics       bool
-		tryPanicValue   interface{}
+		tryPanicValue   any
 		finallyPanicMsg string
 	}{
 		"Normal flow with finally panic": {
@@ -274,8 +274,8 @@ func TestFinally_CalledTwice(t *testing.T) {
 func TestThrow_DirectCall(t *testing.T) {
 	// Test direct calls to Throw
 	tests := map[string]struct {
-		throwValue interface{}
-		expected   interface{}
+		throwValue any
+		expected   any
 	}{
 		"Throw nil": {
 			throwValue: nil,

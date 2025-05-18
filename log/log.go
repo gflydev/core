@@ -18,32 +18,32 @@ type Logger interface {
 	// Trace logs a message at the Trace level.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Trace(v ...interface{})
+	Trace(v ...any)
 	// Debug logs a message at the Debug level.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Debug(v ...interface{})
+	Debug(v ...any)
 	// Info logs a message at the Info level.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Info(v ...interface{})
+	Info(v ...any)
 	// Warn logs a message at the Warning level.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Warn(v ...interface{})
+	Warn(v ...any)
 	// Error logs a message at the Error level.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Error(v ...interface{})
+	Error(v ...any)
 	// Fatal logs a message at the Fatal level and exits the application.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Fatal(v ...interface{})
+	Fatal(v ...any)
 	// Panic logs a message at the Panic level.
 	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - v: The variables or objects to log.
-	Panic(v ...interface{})
+	Panic(v ...any)
 }
 
 // FormatLogger is a logger interface that outputs logs with a format.
@@ -52,38 +52,38 @@ type FormatLogger interface {
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Tracef(format string, v ...interface{})
+	Tracef(format string, v ...any)
 	// Debugf logs a formatted message at the Debug level.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Debugf(format string, v ...interface{})
+	Debugf(format string, v ...any)
 	// Infof logs a formatted message at the Info level.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Infof(format string, v ...interface{})
+	Infof(format string, v ...any)
 	// Warnf logs a formatted message at the Warning level.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Warnf(format string, v ...interface{})
+	Warnf(format string, v ...any)
 	// Errorf logs a formatted message at the Error level.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Errorf(format string, v ...interface{})
+	Errorf(format string, v ...any)
 	// Fatalf logs a formatted message at the Fatal level and exits the application.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Fatalf(format string, v ...interface{})
+	Fatalf(format string, v ...any)
 	// Panicf logs a formatted message at the Panic level.
 	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - format: The format string.
 	//   - v: The variables or objects to format and log.
-	Panicf(format string, v ...interface{})
+	Panicf(format string, v ...any)
 }
 
 // WithLogger is a logger interface that outputs logs with a message and key-value pairs.
@@ -92,38 +92,38 @@ type WithLogger interface {
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Tracew(msg string, keysAndValues ...interface{})
+	Tracew(msg string, keysAndValues ...any)
 	// Debugw logs a message at the Debug level with key-value pairs.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Debugw(msg string, keysAndValues ...interface{})
+	Debugw(msg string, keysAndValues ...any)
 	// Infow logs a message at the Info level with key-value pairs.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Infow(msg string, keysAndValues ...interface{})
+	Infow(msg string, keysAndValues ...any)
 	// Warnw logs a message at the Warning level with key-value pairs.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Warnw(msg string, keysAndValues ...interface{})
+	Warnw(msg string, keysAndValues ...any)
 	// Errorw logs a message at the Error level with key-value pairs.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Errorw(msg string, keysAndValues ...interface{})
+	Errorw(msg string, keysAndValues ...any)
 	// Fatalw logs a message at the Fatal level with key-value pairs and exits the application.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Fatalw(msg string, keysAndValues ...interface{})
+	Fatalw(msg string, keysAndValues ...any)
 	// Panicw logs a message at the Panic level with key-value pairs.
 	// Note: Despite the name, this method does not actually panic.
 	// Parameters:
 	//   - msg: The message string.
 	//   - keysAndValues: The key-value pairs to log.
-	Panicw(msg string, keysAndValues ...interface{})
+	Panicw(msg string, keysAndValues ...any)
 }
 
 type CommonLogger interface {

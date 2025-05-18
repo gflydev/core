@@ -11,8 +11,8 @@ type (
 	F func()
 
 	// E represents any type of error or panic value.
-	// This is an alias for interface{} to allow catching any type of panic.
-	E interface{}
+	// This is an alias for any to allow catching any type of panic.
+	E any
 
 	// EF represents a function that takes an error parameter.
 	// Used for catch blocks to handle errors.

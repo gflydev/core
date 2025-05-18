@@ -41,7 +41,7 @@ func Test_WithContextCaller(t *testing.T) {
 	WithContext(ctx).Info("")
 	Info("")
 
-	require.Equal(t, "default_test.go:41: [INFO] []\ndefault_test.go:42: [INFO] []\n", string(w.b))
+	require.Equal(t, "default_test.go:41: \033[32m[INFO] \033[0m\ndefault_test.go:42: \033[32m[INFO] \033[0m\n", string(w.b))
 }
 
 func Test_DefaultLogger(t *testing.T) {
@@ -57,12 +57,12 @@ func Test_DefaultLogger(t *testing.T) {
 	Error("work failed")
 	Panic("work panic")
 
-	require.Equal(t, "[TRACE] [trace work]\n"+
-		"[DEBUG] [received work order]\n"+
-		"[INFO] [starting work]\n"+
-		"[WARN] [work may fail]\n"+
-		"[ERROR] [work failed]\n"+
-		"[PANIC] [work panic]\n", string(w.b))
+	require.Equal(t, "\033[37m[TRACE] \033[0mtrace work\n"+
+		"\033[34m[DEBUG] \033[0mreceived work order\n"+
+		"\033[32m[INFO] \033[0mstarting work\n"+
+		"\033[33m[WARN] \033[0mwork may fail\n"+
+		"\033[31m[ERROR] \033[0mwork failed\n"+
+		"\033[36m[PANIC] \033[0mwork panic\n", string(w.b))
 }
 
 func Test_DefaultFormatLogger(t *testing.T) {
@@ -78,12 +78,12 @@ func Test_DefaultFormatLogger(t *testing.T) {
 	Errorf("%s failed", work)
 	Panicf("%s panic", work)
 
-	require.Equal(t, "[TRACE] trace work\n"+
-		"[DEBUG] received work order\n"+
-		"[INFO] starting work\n"+
-		"[WARN] work may fail\n"+
-		"[ERROR] work failed\n"+
-		"[PANIC] work panic\n", string(w.b))
+	require.Equal(t, "\033[37m[TRACE] \033[0mtrace work\n"+
+		"\033[34m[DEBUG] \033[0mreceived work order\n"+
+		"\033[32m[INFO] \033[0mstarting work\n"+
+		"\033[33m[WARN] \033[0mwork may fail\n"+
+		"\033[31m[ERROR] \033[0mwork failed\n"+
+		"\033[36m[PANIC] \033[0mwork panic\n", string(w.b))
 }
 
 func Test_CtxLogger(t *testing.T) {
@@ -101,12 +101,12 @@ func Test_CtxLogger(t *testing.T) {
 	WithContext(ctx).Errorf("%s failed %d", work, 50)
 	WithContext(ctx).Panicf("%s panic", work)
 
-	require.Equal(t, "[TRACE] trace work\n"+
-		"[DEBUG] received work order\n"+
-		"[INFO] starting work\n"+
-		"[WARN] work may fail\n"+
-		"[ERROR] work failed 50\n"+
-		"[PANIC] work panic\n", string(w.b))
+	require.Equal(t, "\033[37m[TRACE] \033[0mtrace work\n"+
+		"\033[34m[DEBUG] \033[0mreceived work order\n"+
+		"\033[32m[INFO] \033[0mstarting work\n"+
+		"\033[33m[WARN] \033[0mwork may fail\n"+
+		"\033[31m[ERROR] \033[0mwork failed 50\n"+
+		"\033[36m[PANIC] \033[0mwork panic\n", string(w.b))
 }
 
 func Test_LogfKeyAndValues(t *testing.T) {
@@ -124,7 +124,7 @@ func Test_LogfKeyAndValues(t *testing.T) {
 			format:        "",
 			fmtArgs:       nil,
 			keysAndValues: []any{"name", "Bob", "age", 30},
-			wantOutput:    "[DEBUG] name=Bob age=30\n",
+			wantOutput:    "\033[34m[DEBUG] \033[0mname=Bob age=30\n",
 		},
 		{
 			name:          "test logf with info level and key-values",
@@ -132,7 +132,7 @@ func Test_LogfKeyAndValues(t *testing.T) {
 			format:        "",
 			fmtArgs:       nil,
 			keysAndValues: []any{"status", "ok", "code", 200},
-			wantOutput:    "[INFO] status=ok code=200\n",
+			wantOutput:    "\033[32m[INFO] \033[0mstatus=ok code=200\n",
 		},
 		{
 			name:          "test logf with warn level and key-values",
@@ -140,7 +140,7 @@ func Test_LogfKeyAndValues(t *testing.T) {
 			format:        "",
 			fmtArgs:       nil,
 			keysAndValues: []any{"error", "not found", "id", 123},
-			wantOutput:    "[WARN] error=not found id=123\n",
+			wantOutput:    "\033[33m[WARN] \033[0merror=not found id=123\n",
 		},
 		{
 			name:          "test logf with format and key-values",
@@ -148,7 +148,7 @@ func Test_LogfKeyAndValues(t *testing.T) {
 			format:        "test",
 			fmtArgs:       nil,
 			keysAndValues: []any{"error", "not found", "id", 123},
-			wantOutput:    "[WARN] test error=not found id=123\n",
+			wantOutput:    "\033[33m[WARN] \033[0mtest error=not found id=123\n",
 		},
 		{
 			name:          "test logf with one key",
@@ -156,7 +156,7 @@ func Test_LogfKeyAndValues(t *testing.T) {
 			format:        "",
 			fmtArgs:       nil,
 			keysAndValues: []any{"error"},
-			wantOutput:    "[WARN] error=KEYVALS UNPAIRED\n",
+			wantOutput:    "\033[33m[WARN] \033[0merror=KEYVALS UNPAIRED\n",
 		},
 	}
 	for _, tt := range tests {
@@ -223,7 +223,7 @@ func Test_Debugw(t *testing.T) {
 
 	Debugw(msg, keysAndValues...)
 
-	require.Equal(t, "[DEBUG] debug work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\033[34m[DEBUG] \033[0mdebug work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Test_Infow(t *testing.T) {
@@ -237,7 +237,7 @@ func Test_Infow(t *testing.T) {
 
 	Infow(msg, keysAndValues...)
 
-	require.Equal(t, "[INFO] info work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\033[32m[INFO] \033[0minfo work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Test_Warnw(t *testing.T) {
@@ -251,7 +251,7 @@ func Test_Warnw(t *testing.T) {
 
 	Warnw(msg, keysAndValues...)
 
-	require.Equal(t, "[WARN] warning work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\033[33m[WARN] \033[0mwarning work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Test_Errorw(t *testing.T) {
@@ -265,7 +265,7 @@ func Test_Errorw(t *testing.T) {
 
 	Errorw(msg, keysAndValues...)
 
-	require.Equal(t, "[ERROR] error work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\033[31m[ERROR] \033[0merror work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Test_Panicw(t *testing.T) {
@@ -279,7 +279,7 @@ func Test_Panicw(t *testing.T) {
 
 	Panicw(msg, keysAndValues...)
 
-	require.Equal(t, "[PANIC] panic work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\x1b[36m[PANIC] \x1b[0mpanic work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Test_Tracew(t *testing.T) {
@@ -293,7 +293,7 @@ func Test_Tracew(t *testing.T) {
 
 	Tracew(msg, keysAndValues...)
 
-	require.Equal(t, "[TRACE] trace work key1=value1 key2=value2\n", string(w.b))
+	require.Equal(t, "\x1b[37m[TRACE] \x1b[0mtrace work key1=value1 key2=value2\n", string(w.b))
 }
 
 func Benchmark_LogfKeyAndValues(b *testing.B) {

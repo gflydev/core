@@ -274,27 +274,27 @@ func (c *Ctx) Path() string {
 }
 
 // ====================================================================
-//                         Ctx - Request Data
+//                         Ctx - Response Data
 // ====================================================================
 
 type IResponse interface {
 	// Success sends a successful JSON response.
 	//
 	// Parameters:
-	//   - data (interface{}): The data to include in the JSON response.
+	//   - data (any): The data to include in the JSON response.
 	//
 	// Returns:
 	//   - error: An error if the response generation fails, otherwise nil.
-	Success(data interface{}) error
+	Success(data any) error
 
 	// Error sends an error JSON response.
 	//
 	// Parameters:
-	//   - data (interface{}): The data to include in the JSON response.
+	//   - data (any): The data to include in the JSON response.
 	//
 	// Returns:
 	//   - error: An error if the response generation fails, otherwise nil.
-	Error(data interface{}) error
+	Error(data any) error
 
 	// NoContent sends a response with no content.
 	//
@@ -315,11 +315,11 @@ type IResponse interface {
 	// JSON sends a JSON response.
 	//
 	// Parameters:
-	//   - data (JsonData): The data to include in the JSON response.
+	//   - data (Data): The data to include in the JSON response.
 	//
 	// Returns:
 	//   - error: An error if the response generation fails, otherwise nil.
-	JSON(data JsonData) error
+	JSON(data Data) error
 
 	// HTML sends an HTML response.
 	//
@@ -391,23 +391,24 @@ type IResponse interface {
 // Success sends a successful JSON response.
 //
 // Parameters:
-//   - data (interface{}): The data to include in the JSON response.
+//   - data (any): The data to include in the JSON response.
 //
 // Returns:
 //   - error: An error if the response generation fails, otherwise nil.
-func (c *Ctx) Success(data interface{}) error {
+func (c *Ctx) Success(data any) error {
 	c.root.Response.SetStatusCode(StatusOK)
-	return c.JSON(data)
+	return c.JSONAny(data)
 }
 
-// Error sends an error JSON response.
+// ErrorWithCode sends an error JSON response with a specific HTTP status code.
 //
 // Parameters:
-//   - data (interface{}): The data to include in the JSON response.
+//   - data (any): The data to include in the JSON response.
+//   - httpCode (...int): Optional HTTP status code to set (default: 400 Bad Request).
 //
 // Returns:
 //   - error: An error if the response generation fails, otherwise nil.
-func (c *Ctx) Error(data interface{}, httpCode ...int) error {
+func (c *Ctx) ErrorWithCode(data any, httpCode ...int) error {
 	if len(httpCode) > 0 {
 		c.root.Response.SetStatusCode(httpCode[0])
 	} else {
@@ -415,9 +416,20 @@ func (c *Ctx) Error(data interface{}, httpCode ...int) error {
 	}
 
 	// Set response content
-	_ = c.JSON(data)
+	_ = c.JSONAny(data)
 
 	return errors.UnknownError
+}
+
+// Error sends an error JSON response with the default HTTP status code (400 Bad Request).
+//
+// Parameters:
+//   - data (any): The data to include in the JSON response.
+//
+// Returns:
+//   - error: An error if the response generation fails, otherwise nil.
+func (c *Ctx) Error(data any) error {
+	return c.ErrorWithCode(data)
 }
 
 // NoContent sends a response with no content.
@@ -451,11 +463,22 @@ func (c *Ctx) View(template string, data Data) error {
 // JSON serializes the given data into JSON and sends it as the HTTP response.
 //
 // Parameters:
-//   - data (JsonData): The data to serialize into JSON.
+//   - data (Data): The data to serialize into JSON.
 //
 // Returns:
 //   - error: An error if the JSON serialization or sending the response fails.
-func (c *Ctx) JSON(data JsonData) error {
+func (c *Ctx) JSON(data Data) error {
+	return c.JSONAny(data)
+}
+
+// JSONAny serializes any data into JSON and sends it as the HTTP response.
+//
+// Parameters:
+//   - data (any): The data to serialize into JSON.
+//
+// Returns:
+//   - error: An error if the JSON serialization or sending the response fails.
+func (c *Ctx) JSONAny(data any) error {
 	c.root.Response.Header.SetContentType(MIMEApplicationJSONCharsetUTF8)
 
 	marshal, err := json.Marshal(data)
@@ -726,7 +749,7 @@ type IRequestData interface {
 	//
 	// Returns:
 	//   - error: An error if parsing fails, otherwise nil.
-	ParseQuery(data any) error
+	ParseQuery(data *Data) error
 
 	// FormVal retrieves the value of a form key from a POST or PUT request.
 	//
@@ -859,12 +882,38 @@ func (c *Ctx) ParseBody(data any) error {
 // ParseQuery parses the query string into the provided struct.
 //
 // Parameters:
-//   - out (interface{}): A pointer to a struct where the query data will be unmarshalled.
+//   - out (any): A pointer to a struct where the query data will be unmarshalled.
 //
 // Returns:
 //   - error: Always returns nil (currently not implemented).
-func (c *Ctx) ParseQuery(out interface{}) error {
-	log.Error("===> Not yet implemented <===")
+func (c *Ctx) ParseQuery(data *Data) error {
+	c.root.QueryArgs().VisitAll(func(key, value []byte) {
+		keyStr := string(key)
+		valStr := string(value)
+
+		// Check if the key has the array suffix []
+		if strings.HasSuffix(keyStr, "[]") {
+			// Remove the [] suffix to get the base key name
+			baseKey := strings.TrimSuffix(keyStr, "[]")
+
+			// Get the existing array if it exists
+			var values []string
+			if existingVal := data.Get(baseKey); existingVal != nil {
+				if existingArray, ok := existingVal.([]string); ok {
+					values = existingArray
+				}
+			}
+
+			// Add the new value to the array
+			values = append(values, valStr)
+
+			// Set the array back to the base key
+			data.Set(baseKey, values)
+		} else {
+			// Regular key, set directly
+			data.Set(keyStr, valStr)
+		}
+	})
 
 	return nil
 }
@@ -1115,8 +1164,8 @@ type IData interface {
 	//
 	// Parameters:
 	//   - key (string): The key under which the data will be stored.
-	//   - data (interface{}): The data to be stored.
-	SetData(key string, data interface{})
+	//   - data (any): The data to be stored.
+	SetData(key string, data any)
 
 	// GetData retrieves data from the request context Ctx.
 	//
@@ -1124,15 +1173,15 @@ type IData interface {
 	//   - key (string): The key associated with the data.
 	//
 	// Returns:
-	//   - interface{}: The data associated with the provided key.
-	GetData(key string) interface{}
+	//   - any: The data associated with the provided key.
+	GetData(key string) any
 
 	// SetSession stores data in the session context.
 	//
 	// Parameters:
 	//   - key (string): The key under which the session data will be stored.
-	//   - data (interface{}): The session data to be stored.
-	SetSession(key string, data interface{})
+	//   - data (any): The session data to be stored.
+	SetSession(key string, data any)
 
 	// GetSession retrieves data from the session context.
 	//
@@ -1140,16 +1189,16 @@ type IData interface {
 	//   - key (string): The key associated with the session data.
 	//
 	// Returns:
-	//   - interface{}: The session data associated with the provided key.
-	GetSession(key string) interface{}
+	//   - any: The session data associated with the provided key.
+	GetSession(key string) any
 }
 
 // SetData stores data in the request context Ctx.
 //
 // Parameters:
 //   - key (string): The key under which the data will be stored.
-//   - data (interface{}): The data to be stored.
-func (c *Ctx) SetData(key string, data interface{}) {
+//   - data (any): The data to be stored.
+func (c *Ctx) SetData(key string, data any) {
 	c.data[key] = data
 }
 
@@ -1159,8 +1208,8 @@ func (c *Ctx) SetData(key string, data interface{}) {
 //   - key (string): The key associated with the data.
 //
 // Returns:
-//   - interface{}: The data associated with the provided key.
-func (c *Ctx) GetData(key string) interface{} {
+//   - any: The data associated with the provided key.
+func (c *Ctx) GetData(key string) any {
 	return c.data[key]
 }
 
@@ -1168,8 +1217,8 @@ func (c *Ctx) GetData(key string) interface{} {
 //
 // Parameters:
 //   - key (string): The key under which the session data will be stored.
-//   - data (interface{}): The session data to be stored.
-func (c *Ctx) SetSession(key string, data interface{}) {
+//   - data (any): The session data to be stored.
+func (c *Ctx) SetSession(key string, data any) {
 	session.Set(c, key, data)
 }
 
@@ -1179,7 +1228,7 @@ func (c *Ctx) SetSession(key string, data interface{}) {
 //   - key (string): The key associated with the session data.
 //
 // Returns:
-//   - interface{}: The session data associated with the provided key.
-func (c *Ctx) GetSession(key string) interface{} {
+//   - any: The session data associated with the provided key.
+func (c *Ctx) GetSession(key string) any {
 	return session.Get(c, key)
 }

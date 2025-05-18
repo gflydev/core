@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gflydev/core"
+	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
 	// Autoload .env file
 	_ "github.com/joho/godotenv/autoload"
@@ -23,10 +24,34 @@ type DefaultApi struct {
 }
 
 func (h *DefaultApi) Handle(c *core.Ctx) error {
-	return c.JSON(core.Data{
-		"name":   core.AppName,
-		"server": core.AppURL,
-	})
+	// http://localhost:7789/api/v1/info?param1=one&arr[]=item1&arr[]=item2&arr[]=3
+	queryData := make(core.Data)
+	if err := c.ParseQuery(&queryData); err != nil {
+		return err
+	}
+
+	keys := queryData.Keys()
+	for _, key := range keys {
+		value := queryData.Get(key)
+
+		switch value.(type) {
+		case string:
+			log.Infof("%s: %s", key, value.(string))
+			break
+		case []string:
+			for _, v := range value.([]string) {
+				log.Infof("%s[]: %s", key, v)
+			}
+			break
+		}
+	}
+
+	response := make(core.Data).
+		Set("name", core.AppName).
+		Set("server", core.AppURL).
+		Set("query", queryData)
+
+	return c.JSON(response)
 }
 
 // =========================================================================================

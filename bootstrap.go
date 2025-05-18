@@ -101,7 +101,7 @@ func setupLog() {
 		logFile := filepath.Join(logDir, logFileName)
 
 		// Ensure log directory exists
-		if err := os.MkdirAll(logDir, 0o755); err != nil {
+		if err := os.MkdirAll(logDir, 0o750); err != nil {
 			fmt.Printf("Error creating log directory: %v\n", err)
 			// Continue with stdout only if directory creation fails
 		} else {

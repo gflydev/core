@@ -118,17 +118,6 @@ func Truncate(s string, length int, withEllipsis bool) string {
 	return s[:length]
 }
 
-// IsEmpty checks if a string is empty.
-//
-// Parameters:
-//   - s string: The input string to check.
-//
-// Returns:
-//   - bool: True if the string is empty, false otherwise.
-func IsEmpty(s string) bool {
-	return len(s) == 0
-}
-
 // IsBlank checks if a string is empty or contains only whitespace.
 //
 // Parameters:
@@ -137,7 +126,7 @@ func IsEmpty(s string) bool {
 // Returns:
 //   - bool: True if the string is empty or contains only whitespace, false otherwise.
 func IsBlank(s string) bool {
-	if len(s) == 0 {
+	if s == "" {
 		return true
 	}
 
@@ -226,14 +215,15 @@ func ToSnakeCase(s string) string {
 
 	var result strings.Builder
 	for i, r := range s {
-		if unicode.IsUpper(r) {
+		switch {
+		case unicode.IsUpper(r):
 			if i > 0 {
 				result.WriteRune('_')
 			}
 			result.WriteRune(unicode.ToLower(r))
-		} else if r == ' ' || r == '-' {
+		case r == ' ' || r == '-':
 			result.WriteRune('_')
-		} else {
+		default:
 			result.WriteRune(r)
 		}
 	}

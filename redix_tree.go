@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/valyala/bytebufferpool"
@@ -42,8 +41,8 @@ const (
 
 // radixError represents a custom error with a message and related parameters.
 type radixError struct {
-	msg    string        // Error message template
-	params []interface{} // Parameters for formatting the error message
+	msg    string // Error message template
+	params []any  // Parameters for formatting the error message
 }
 
 // Error returns the formatted error message for a radixError.
@@ -58,7 +57,7 @@ func (err radixError) Error() string {
 //
 // Returns:
 //   - radixError: The created custom error instance.
-func newRadixError(msg string, params ...interface{}) radixError {
+func newRadixError(msg string, params ...any) radixError {
 	return radixError{msg, params}
 }
 
@@ -101,7 +100,7 @@ type wildPath struct {
 // Parameters:
 //   - s: The format string.
 //   - args: Variadic arguments used to format the string.
-func panicf(s string, args ...interface{}) {
+func panicf(s string, args ...any) {
 	panic(fmt.Sprintf(s, args...))
 }
 
@@ -121,21 +120,6 @@ func minVal(a, b int) int {
 
 func bufferRemoveString(buf *bytebufferpool.ByteBuffer, s string) {
 	buf.B = buf.B[:len(buf.B)-len(s)]
-}
-
-// isIndexEqual compares the first rune of two strings for equality in a case-insensitive manner.
-//
-// Parameters:
-//   - a: The first string to compare.
-//   - b: The second string to compare.
-//
-// Returns:
-//   - bool: True if the first rune of both strings is equal (ignoring case), otherwise false.
-func isIndexEqual(a, b string) bool {
-	ra, _ := utf8.DecodeRuneInString(a)
-	rb, _ := utf8.DecodeRuneInString(b)
-
-	return unicode.ToLower(ra) == unicode.ToLower(rb)
 }
 
 // longestCommonPrefix finds the longest common prefix between two strings.
