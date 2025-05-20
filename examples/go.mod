@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/gflydev/core => ../
 
 require (
-	github.com/gflydev/core v1.15.2
+	github.com/gflydev/core v1.15.4
 	github.com/joho/godotenv v1.5.1
 )
 

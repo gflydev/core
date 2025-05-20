@@ -749,6 +749,15 @@ type IRequestData interface {
 	//   - error: An error if the value cannot be converted to an integer.
 	FormInt(key string) (int, error)
 
+	// FormStr retrieves the string value of a form key from a POST or PUT request.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the form data.
+	//
+	// Returns:
+	//   - string: The string value associated with the provided key.
+	FormStr(key string) string
+
 	// FormBool retrieves the boolean value of a form key from a POST or PUT request.
 	//
 	// Parameters:
@@ -922,12 +931,22 @@ func (c *Ctx) FormVal(key string) []byte {
 //   - int: The integer value associated with the provided key.
 //   - error: An error if the value cannot be converted to an integer.
 func (c *Ctx) FormInt(key string) (int, error) {
-	data := c.root.PostArgs().Peek(key)
-	if data == nil {
-		data = c.root.FormValue(key)
-	}
+	data := c.FormVal(key)
 
 	return strconv.Atoi(string(data))
+}
+
+// FormStr retrieves the string value of a form key from a POST or PUT request.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the form data.
+//
+// Returns:
+//   - string: The string value associated with the provided key.
+func (c *Ctx) FormStr(key string) string {
+	data := c.FormVal(key)
+
+	return string(data)
 }
 
 // FormBool retrieves the boolean value of a form key from a POST or PUT request.
@@ -939,10 +958,7 @@ func (c *Ctx) FormInt(key string) (int, error) {
 //   - bool: The boolean value associated with the provided key.
 //   - error: An error if the value cannot be converted to a boolean.
 func (c *Ctx) FormBool(key string) (bool, error) {
-	data := c.root.PostArgs().Peek(key)
-	if data == nil {
-		data = c.root.FormValue(key)
-	}
+	data := c.FormVal(key)
 
 	return strconv.ParseBool(string(data))
 }
@@ -956,10 +972,7 @@ func (c *Ctx) FormBool(key string) (bool, error) {
 //   - float64: The float value associated with the provided key.
 //   - error: An error if the value cannot be converted to a float.
 func (c *Ctx) FormFloat(key string) (float64, error) {
-	data := c.root.PostArgs().Peek(key)
-	if data == nil {
-		data = c.root.FormValue(key)
-	}
+	data := c.FormVal(key)
 
 	return strconv.ParseFloat(string(data), 64)
 }
