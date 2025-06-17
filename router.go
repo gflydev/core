@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/gflydev/core/errors"
 	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
 	"strings"
@@ -816,8 +817,9 @@ func errorHandler(ctx *Ctx, err error, code int) error {
 		ctx.Status(code)
 	}
 
-	// Write log
-	log.Errorf("Bad request: %v", err)
+	if err.Error() != errors.UnknownError.Error() {
+		log.Errorf("Bad request: %v", err)
+	}
 
 	// Set default body
 	body := ctx.root.Response.Body()
