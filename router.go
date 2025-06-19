@@ -817,7 +817,7 @@ func errorHandler(ctx *Ctx, err error, code int) error {
 		ctx.Status(code)
 	}
 
-	if err.Error() != errors.UnknownError.Error() {
+	if !errors.Is(err, errors.UnknownError) {
 		log.Errorf("Bad request: %v", err)
 	}
 
