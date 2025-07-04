@@ -15,6 +15,11 @@ test.errors:
 
 test: test.try test.log test.utils test.errors
 
+test.request_params:
+	go test -v . -run "TestAddParam"
+	go test -v . -run "TestAddParamToBody"
+	go test -v . -run "TestDeleteParam"
+
 test.cover:
 	go test -v -timeout 30s -coverprofile=cover.out -cover ./...
 	go tool cover -html=cover.out

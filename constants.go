@@ -7,7 +7,7 @@ package core
 // Version of the current gFly application
 const (
 	// Version indicates the version of the framework
-	Version = "v1.16.0"
+	Version = "v1.17.0"
 )
 
 // ====================================================================
@@ -652,4 +652,20 @@ const (
 
 	// HeaderXUACompatible represents the HTTP X-UA-Compatible header.
 	HeaderXUACompatible = "X-UA-Compatible"
+)
+
+// ====================================================================
+//                          Parameter Types
+// ====================================================================
+
+// Parameter types used in request parameter operations
+const (
+	// ParamTypePost represents the form parameter type
+	ParamTypePost = "post"
+
+	// ParamTypeQuery represents the query parameter type
+	ParamTypeQuery = "query"
+
+	// ParamTypeBody represents the JSON body parameter type
+	ParamTypeBody = "body"
 )

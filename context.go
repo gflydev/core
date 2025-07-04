@@ -730,7 +730,19 @@ type IRequestData interface {
 	//   - error: An error if parsing fails, otherwise nil.
 	ParseQuery(data *Data) error
 
-	// FormVal retrieves the value of a form key from a POST or PUT request.
+	// FormVal retrieves the value of a form key from POST/PUT/Query string or body.
+	//
+	// The value is searched in the following places:
+	//
+	//   - Query string.
+	//   - POST or PUT body.
+	//
+	// There are more fine-grained methods for obtaining form values:
+	//
+	//   - QueryArgs for obtaining values from query string.
+	//   - PostArgs for obtaining values from POST or PUT body.
+	//   - MultipartForm for obtaining values from multipart form.
+	//   - FormFile for obtaining uploaded files.
 	//
 	// Parameters:
 	//   - key (string): The key to retrieve from the form data.
@@ -739,7 +751,19 @@ type IRequestData interface {
 	//   - []byte: The value associated with the provided key.
 	FormVal(key string) []byte
 
-	// FormInt retrieves the integer value of a form key from a POST or PUT request.
+	// FormInt retrieves the integer value of a form key from POST/PUT/Query string or body.
+	//
+	// The value is searched in the following places:
+	//
+	//   - Query string.
+	//   - POST or PUT body.
+	//
+	// There are more fine-grained methods for obtaining form values:
+	//
+	//   - QueryArgs for obtaining values from query string.
+	//   - PostArgs for obtaining values from POST or PUT body.
+	//   - MultipartForm for obtaining values from multipart form.
+	//   - FormFile for obtaining uploaded files.
 	//
 	// Parameters:
 	//   - key (string): The key to retrieve from the form data.
@@ -749,7 +773,19 @@ type IRequestData interface {
 	//   - error: An error if the value cannot be converted to an integer.
 	FormInt(key string) (int, error)
 
-	// FormStr retrieves the string value of a form key from a POST or PUT request.
+	// FormStr retrieves the string value of a form key from POST/PUT/Query string or body.
+	//
+	// The value is searched in the following places:
+	//
+	//   - Query string.
+	//   - POST or PUT body.
+	//
+	// There are more fine-grained methods for obtaining form values:
+	//
+	//   - QueryArgs for obtaining values from query string.
+	//   - PostArgs for obtaining values from POST or PUT body.
+	//   - MultipartForm for obtaining values from multipart form.
+	//   - FormFile for obtaining uploaded files.
 	//
 	// Parameters:
 	//   - key (string): The key to retrieve from the form data.
@@ -758,7 +794,19 @@ type IRequestData interface {
 	//   - string: The string value associated with the provided key.
 	FormStr(key string) string
 
-	// FormBool retrieves the boolean value of a form key from a POST or PUT request.
+	// FormBool retrieves the boolean value of a form key from POST/PUT/Query string or body.
+	//
+	// The value is searched in the following places:
+	//
+	//   - Query string.
+	//   - POST or PUT body.
+	//
+	// There are more fine-grained methods for obtaining form values:
+	//
+	//   - QueryArgs for obtaining values from query string.
+	//   - PostArgs for obtaining values from POST or PUT body.
+	//   - MultipartForm for obtaining values from multipart form.
+	//   - FormFile for obtaining uploaded files.
 	//
 	// Parameters:
 	//   - key (string): The key to retrieve from the form data.
@@ -768,7 +816,19 @@ type IRequestData interface {
 	//   - error: An error if the value cannot be converted to a boolean.
 	FormBool(key string) (bool, error)
 
-	// FormFloat retrieves the float value of a form key from a POST or PUT request.
+	// FormFloat retrieves the float value of a form key from POST/PUT/Query string or body.
+	//
+	// The value is searched in the following places:
+	//
+	//   - Query string.
+	//   - POST or PUT body.
+	//
+	// There are more fine-grained methods for obtaining form values:
+	//
+	//   - QueryArgs for obtaining values from query string.
+	//   - PostArgs for obtaining values from POST or PUT body.
+	//   - MultipartForm for obtaining values from multipart form.
+	//   - FormFile for obtaining uploaded files.
 	//
 	// Parameters:
 	//   - key (string): The key to retrieve from the form data.
@@ -787,6 +847,51 @@ type IRequestData interface {
 	//   - []UploadedFile: A list of UploadedFile details for each processed file.
 	//   - error: An error if the file upload processing fails.
 	FormUpload(files ...string) ([]UploadedFile, error)
+
+	// Posts retrieves all key-value pairs from the POST/PUT of the HTTP request.
+	//
+	// Returns:
+	//   - map[string]string: A map of key-value pairs representing the query string data.
+	Posts() map[string][]byte
+
+	// PostStr retrieves a string value from the POST/PUT request data.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from POST data.
+	//
+	// Returns:
+	//   - string: The string value associated with the provided key, or empty string if not found.
+	PostStr(key string) string
+
+	// PostInt retrieves an integer value from the POST/PUT request data.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from POST data.
+	//
+	// Returns:
+	//   - int: The integer value associated with the provided key.
+	//   - error: An error if key not found or value cannot be converted to integer.
+	PostInt(key string) (int, error)
+
+	// PostBool retrieves a boolean value from the POST/PUT request data.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from POST data.
+	//
+	// Returns:
+	//   - bool: The boolean value associated with the provided key.
+	//   - error: An error if key not found or value cannot be converted to boolean.
+	PostBool(key string) (bool, error)
+
+	// PostFloat retrieves a float value from the POST/PUT request data.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from POST data.
+	//
+	// Returns:
+	//   - float64: The float value associated with the provided key.
+	//   - error: An error if key not found or value cannot be converted to float.
+	PostFloat(key string) (float64, error)
 
 	// Queries retrieves all key-value pairs from the query string of the HTTP request.
 	//
@@ -847,6 +952,27 @@ type IRequestData interface {
 	// Returns:
 	//   - string: The original URL requested by the client.
 	OriginalURL() string
+
+	// AddParam adds a parameter to the request.
+	//
+	// Parameters:
+	//   - key (string): The key of the parameter to add.
+	//   - value (string): The value to associate with the key.
+	//   - paramType (...string): Optional parameter type. Can be "form" or "query". Default is both.
+	//
+	// Returns:
+	//   - IRequestData: The current request data interface for chaining.
+	AddParam(key string, value string, paramType ...string) IRequestData
+
+	// DeleteParam deletes a parameter from the request.
+	//
+	// Parameters:
+	//   - key (string): The key of the parameter to delete.
+	//   - paramType (...string): Optional parameter type. Can be "form" or "query". Default is both.
+	//
+	// Returns:
+	//   - IRequestData: The current request data interface for chaining.
+	DeleteParam(key string, paramType ...string) IRequestData
 }
 
 // ParseBody parses the HTTP request body into the provided struct.
@@ -906,7 +1032,19 @@ func (c *Ctx) ParseQuery(data *Data) error {
 	return nil
 }
 
-// FormVal retrieves the value of a form key from a POST or PUT request.
+// FormVal retrieves the value of a form key from a POST PUT request query string or body.
+//
+// The value is searched in the following places:
+//
+//   - Query string.
+//   - POST or PUT body.
+//
+// There are more fine-grained methods for obtaining form values:
+//
+//   - QueryArgs for obtaining values from query string.
+//   - PostArgs for obtaining values from POST or PUT body.
+//   - MultipartForm for obtaining values from multipart form.
+//   - FormFile for obtaining uploaded files.
 //
 // Parameters:
 //   - key (string): The key to retrieve from the form data.
@@ -914,12 +1052,7 @@ func (c *Ctx) ParseQuery(data *Data) error {
 // Returns:
 //   - []byte: The value associated with the provided key.
 func (c *Ctx) FormVal(key string) []byte {
-	data := c.root.PostArgs().Peek(key)
-	if data == nil {
-		data = c.root.FormValue(key)
-	}
-
-	return data
+	return c.root.FormValue(key)
 }
 
 // FormInt retrieves the integer value of a form key from a POST or PUT request.
@@ -1021,7 +1154,7 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 
 		for name, v := range form.File {
 			for _, header := range v {
-				// Create temporary file.
+				// Create a temporary file.
 				tempName := fmt.Sprintf("%s.%s", utils.Token(), utils.FileExt(header.Filename))
 				filePath := fmt.Sprintf("%s/%s", TempDir, tempName)
 
@@ -1041,6 +1174,85 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 	}
 
 	return uploadedFiles, nil
+}
+
+// Posts retrieves all key-value pairs from the POST of the HTTP request.
+//
+// Returns:
+//   - map[string]string: A map of key-value pairs representing the query string data.
+func (c *Ctx) Posts() map[string][]byte {
+	m := make(map[string][]byte, c.root.PostArgs().Len())
+	c.root.PostArgs().VisitAll(func(key, value []byte) {
+		m[string(key)] = value
+	})
+	return m
+}
+
+// PostStr retrieves a string value from the POST request data.
+//
+// Parameters:
+//   - key (string): The key to retrieve from POST data.
+//
+// Returns:
+//   - string: The string value associated with the provided key, or empty string if not found.
+func (c *Ctx) PostStr(key string) string {
+	data := c.root.PostArgs().Peek(key)
+	if data == nil {
+		return "" // Return empty string if key not found
+	}
+
+	return string(data)
+}
+
+// PostInt retrieves an integer value from the POST request data.
+//
+// Parameters:
+//   - key (string): The key to retrieve from POST data.
+//
+// Returns:
+//   - int: The integer value associated with the provided key.
+//   - error: An error if key not found or value cannot be converted to integer.
+func (c *Ctx) PostInt(key string) (int, error) {
+	data := c.root.PostArgs().Peek(key)
+	if data == nil {
+		return 0, errors.New("Key not found")
+	}
+
+	return strconv.Atoi(string(data))
+}
+
+// PostBool retrieves a boolean value from the POST request data.
+//
+// Parameters:
+//   - key (string): The key to retrieve from POST data.
+//
+// Returns:
+//   - bool: The boolean value associated with the provided key.
+//   - error: An error if key not found or value cannot be converted to boolean.
+func (c *Ctx) PostBool(key string) (bool, error) {
+	data := c.root.PostArgs().Peek(key)
+	if data == nil {
+		return false, errors.New("Key not found")
+	}
+
+	return strconv.ParseBool(string(data))
+}
+
+// PostFloat retrieves a float value from the POST request data.
+//
+// Parameters:
+//   - key (string): The key to retrieve from POST data.
+//
+// Returns:
+//   - float64: The float value associated with the provided key.
+//   - error: An error if key not found or value cannot be converted to float.
+func (c *Ctx) PostFloat(key string) (float64, error) {
+	data := c.root.PostArgs().Peek(key)
+	if data == nil {
+		return 0, errors.New("Key not found")
+	}
+
+	return strconv.ParseFloat(string(data), 64)
 }
 
 // Queries retrieves all key-value pairs from the query string of the HTTP request.
@@ -1065,7 +1277,7 @@ func (c *Ctx) Queries() map[string]string {
 func (c *Ctx) QueryStr(key string) string {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
-		data = c.root.FormValue(key)
+		return "" // Return empty string if key not found
 	}
 
 	return string(data)
@@ -1082,7 +1294,7 @@ func (c *Ctx) QueryStr(key string) string {
 func (c *Ctx) QueryInt(key string) (int, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
-		data = c.root.FormValue(key)
+		return 0, errors.New("Key not found")
 	}
 
 	return strconv.Atoi(string(data))
@@ -1099,7 +1311,7 @@ func (c *Ctx) QueryInt(key string) (int, error) {
 func (c *Ctx) QueryBool(key string) (bool, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
-		data = c.root.FormValue(key)
+		return false, errors.New("Key not found")
 	}
 
 	return strconv.ParseBool(string(data))
@@ -1116,7 +1328,7 @@ func (c *Ctx) QueryBool(key string) (bool, error) {
 func (c *Ctx) QueryFloat(key string) (float64, error) {
 	data := c.root.QueryArgs().Peek(key)
 	if data == nil {
-		data = c.root.FormValue(key)
+		return 0, errors.New("Key not found")
 	}
 
 	return strconv.ParseFloat(string(data), 64)
@@ -1145,6 +1357,98 @@ func (c *Ctx) PathVal(key string) string {
 //   - string: The original URL requested by the client.
 func (c *Ctx) OriginalURL() string {
 	return string(c.root.Request.Header.RequestURI())
+}
+
+// AddParam adds a parameter to the request.
+//
+// Parameters:
+//   - key (string): The key of the parameter to add.
+//   - value (string): The value to associate with the key.
+//   - paramType (...string): Optional parameter type.
+//     Can be ParamTypePost or ParamTypeQuery or ParamTypeBody.
+//     Default is both.
+//
+// Returns:
+//   - IRequestData: The current request data interface for chaining.
+func (c *Ctx) AddParam(key, value string, paramType ...string) IRequestData {
+	if len(paramType) == 0 || utils.IncludeStr(paramType, ParamTypePost) {
+		c.root.PostArgs().Set(key, value)
+	}
+
+	if len(paramType) == 0 || utils.IncludeStr(paramType, ParamTypeQuery) {
+		c.root.QueryArgs().Set(key, value)
+	}
+
+	if len(paramType) > 0 && utils.IncludeStr(paramType, ParamTypeBody) {
+		// Get the current body data
+		jsonData := c.root.PostBody()
+
+		// If the body is empty, create a new JSON object
+		if len(jsonData) == 0 {
+			jsonData = []byte("{}")
+		}
+
+		// Parse the JSON body into a map
+		var bodyMap map[string]any
+		if err := json.Unmarshal(jsonData, &bodyMap); err != nil {
+			// If parsing fails, create a new map
+			bodyMap = make(map[string]any)
+		}
+
+		// Update the specified field
+		bodyMap[key] = value
+
+		// Convert back to JSON
+		if updatedJSON, err := json.Marshal(bodyMap); err == nil {
+			// Set the updated JSON back to the body
+			c.root.Request.SetBody(updatedJSON)
+		}
+	}
+
+	return c
+}
+
+// DeleteParam deletes a parameter from the request.
+//
+// Parameters:
+//   - key (string): The key of the parameter to delete.
+//   - paramType (...string): Optional parameter type.
+//     Can be ParamTypePost or ParamTypeQuery or ParamTypeBody.
+//     Default is both.
+//
+// Returns:
+//   - IRequestData: The current request data interface for chaining.
+func (c *Ctx) DeleteParam(key string, paramType ...string) IRequestData {
+	if len(paramType) == 0 || utils.IncludeStr(paramType, ParamTypePost) {
+		c.root.PostArgs().Del(key)
+	}
+
+	if len(paramType) == 0 || utils.IncludeStr(paramType, ParamTypeQuery) {
+		c.root.QueryArgs().Del(key)
+	}
+
+	if len(paramType) > 0 && utils.IncludeStr(paramType, ParamTypeBody) {
+		// Get the current body data
+		jsonData := c.root.PostBody()
+
+		// If the body is not empty, try to delete the key
+		if len(jsonData) > 0 {
+			// Parse the JSON body into a map
+			var bodyMap = make(map[string]interface{})
+			if err := json.Unmarshal(jsonData, &bodyMap); err == nil {
+				// Delete the specified field
+				delete(bodyMap, key)
+
+				// Convert back to JSON
+				if updatedJSON, err := json.Marshal(bodyMap); err == nil {
+					// Set the updated JSON back to the body
+					c.root.Request.SetBody(updatedJSON)
+				}
+			}
+		}
+	}
+
+	return c
 }
 
 // ====================================================================
