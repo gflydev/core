@@ -36,8 +36,9 @@ type Router struct {
 	// If true, route handlers can be updated after being set.
 	treeMutable bool
 
-	// customMethodsIndex maps custom HTTP methods to their respective indices in the trees.
-	customMethodsIndex map[string]int
+	// methodsIndex maps HTTP methods to their respective indices in the trees.
+	// This includes both standard and custom methods.
+	methodsIndex map[string]int
 
 	// registeredPaths stores all registered routes grouped by HTTP method.
 	registeredPaths map[string][]string
@@ -122,9 +123,9 @@ type Router struct {
 // Returns:
 // - *Router: A pointer to the newly created Router instance, with default settings.
 func NewRouter() *Router {
-	return &Router{
+	r := &Router{
 		trees:                  make([]*Tree, 10),
-		customMethodsIndex:     make(map[string]int),
+		methodsIndex:           make(map[string]int),
 		registeredPaths:        make(map[string][]string),
 		RedirectTrailingSlash:  true,
 		RedirectFixedPath:      true,
@@ -142,6 +143,20 @@ func NewRouter() *Router {
 			return nil
 		},
 	}
+
+	// Initialize standard method indices
+	r.methodsIndex[fasthttp.MethodGet] = 0
+	r.methodsIndex[fasthttp.MethodHead] = 1
+	r.methodsIndex[fasthttp.MethodPost] = 2
+	r.methodsIndex[fasthttp.MethodPut] = 3
+	r.methodsIndex[fasthttp.MethodPatch] = 4
+	r.methodsIndex[fasthttp.MethodDelete] = 5
+	r.methodsIndex[fasthttp.MethodConnect] = 6
+	r.methodsIndex[fasthttp.MethodOptions] = 7
+	r.methodsIndex[fasthttp.MethodTrace] = 8
+	r.methodsIndex[MethodWild] = 9
+
+	return r
 }
 
 // Group creates a new route group with the specified base path.
@@ -216,30 +231,7 @@ func (e *saveMatchedRoutePathHandler) Handle(c *Ctx) error {
 // Returns:
 //   - int: The index of the given method. Returns -1 if the method is not recognized or registered.
 func (r *Router) methodIndexOf(method string) int {
-	switch method {
-	case fasthttp.MethodGet:
-		return 0
-	case fasthttp.MethodHead:
-		return 1
-	case fasthttp.MethodPost:
-		return 2
-	case fasthttp.MethodPut:
-		return 3
-	case fasthttp.MethodPatch:
-		return 4
-	case fasthttp.MethodDelete:
-		return 5
-	case fasthttp.MethodConnect:
-		return 6
-	case fasthttp.MethodOptions:
-		return 7
-	case fasthttp.MethodTrace:
-		return 8
-	case MethodWild:
-		return 9
-	}
-
-	if i, ok := r.customMethodsIndex[method]; ok {
+	if i, ok := r.methodsIndex[method]; ok {
 		return i
 	}
 
@@ -493,7 +485,7 @@ func (r *Router) Handle(method, path string, handler IHandler) {
 
 		r.trees = append(r.trees, tree)
 		methodIndex = len(r.trees) - 1
-		r.customMethodsIndex[method] = methodIndex
+		r.methodsIndex[method] = methodIndex
 	}
 
 	tree := r.trees[methodIndex]
@@ -646,33 +638,35 @@ func (r *Router) tryRedirect(ctx *Ctx, tree *Tree, tsr bool, method, path string
 		code = fasthttp.StatusPermanentRedirect
 	}
 
+	// Get a buffer from the pool once and reuse it
+	uri := bytebufferpool.Get()
+	defer bytebufferpool.Put(uri)
+
+	// Handle trailing slash redirects
 	if tsr && r.RedirectTrailingSlash {
-		uri := bytebufferpool.Get()
+		// Reset buffer to ensure it's empty
+		uri.Reset()
 
 		if len(path) > 1 && path[len(path)-1] == '/' {
 			uri.SetString(path[:len(path)-1])
 		} else {
 			uri.SetString(path)
-			err := uri.WriteByte('/')
-			if err != nil {
+			if uri.WriteByte('/') != nil {
 				return false
 			}
 		}
 
+		// Add query string if present
 		if queryBuf := ctx.root.URI().QueryString(); len(queryBuf) > 0 {
-			err := uri.WriteByte(questionMark)
-			if err != nil {
+			if uri.WriteByte(questionMark) != nil {
 				return false
 			}
-			_, err = uri.Write(queryBuf)
-			if err != nil {
+			if _, err := uri.Write(queryBuf); err != nil {
 				return false
 			}
 		}
 
 		ctx.root.Redirect(uri.String(), code)
-		bytebufferpool.Put(uri)
-
 		return true
 	}
 
@@ -680,7 +674,9 @@ func (r *Router) tryRedirect(ctx *Ctx, tree *Tree, tsr bool, method, path string
 	if r.RedirectFixedPath {
 		path2 := utils.UnsafeStr(ctx.root.Request.URI().Path())
 
-		uri := bytebufferpool.Get()
+		// Reset buffer to ensure it's empty
+		uri.Reset()
+
 		found := tree.FindCaseInsensitivePath(
 			cleanPath(path2),
 			r.RedirectTrailingSlash,
@@ -688,24 +684,19 @@ func (r *Router) tryRedirect(ctx *Ctx, tree *Tree, tsr bool, method, path string
 		)
 
 		if found {
+			// Add query string if present
 			if queryBuf := ctx.root.URI().QueryString(); len(queryBuf) > 0 {
-				err := uri.WriteByte(questionMark)
-				if err != nil {
+				if uri.WriteByte(questionMark) != nil {
 					return false
 				}
-				_, err = uri.Write(queryBuf)
-				if err != nil {
+				if _, err := uri.Write(queryBuf); err != nil {
 					return false
 				}
 			}
 
 			ctx.root.Redirect(uri.String(), code)
-			bytebufferpool.Put(uri)
-
 			return true
 		}
-
-		bytebufferpool.Put(uri)
 	}
 
 	return false
