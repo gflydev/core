@@ -21,8 +21,8 @@ test.request_params:
 	go test -v . -run "TestDeleteParam"
 
 test.cover:
-	go test -v -timeout 30s -coverprofile=cover.out -cover ./...
-	go tool cover -html=cover.out
+	go test -v -timeout 30s -coverprofile=coverage.out -cover ./...
+	go tool cover -html=coverage.out
 
 critic:
 	gocritic check -enableAll -disable=unnamedResult,unlabelStmt,hugeParam,singleCaseSwitch,builtinShadow,typeAssertChain ./...

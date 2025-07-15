@@ -72,6 +72,9 @@ func (d Data) GetInt(key string) int {
 	if v, ok := d.Get(key).(int8); ok {
 		return int(v)
 	}
+	if v, ok := d.Get(key).(uint64); ok {
+		return int(v)
+	}
 	if v, ok := d.Get(key).(uint32); ok {
 		return int(v)
 	}
@@ -79,6 +82,9 @@ func (d Data) GetInt(key string) int {
 		return int(v)
 	}
 	if v, ok := d.Get(key).(uint8); ok {
+		return int(v)
+	}
+	if v, ok := d.Get(key).(uint); ok {
 		return int(v)
 	}
 	return 0
