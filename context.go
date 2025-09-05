@@ -169,11 +169,19 @@ type IHeader interface {
 	// Returns:
 	//   - string: The value of the cookie; an empty string if not found.
 	GetCookie(key string) string
-	// GetReqHeaders returns all HTTP request headers.
+	// GetHeaders returns all HTTP request headers.
 	//
 	// Returns:
 	//   - map[string][]string: A map of header keys and their respective values.
-	GetReqHeaders() map[string][]string
+	GetHeaders() map[string][]string
+	// GetHeader returns all HTTP request header.
+	//
+	// Parameters:
+	//   - key (string): The name of the header to retrieve.
+	//
+	// Returns:
+	//   - string: The value of the cookie; an empty string if not found.
+	GetHeader(key string) string
 	// Path retrieves the URI path of the current request.
 	//
 	// Returns:
@@ -251,11 +259,11 @@ func (c *Ctx) GetCookie(key string) string {
 	return string(c.root.Request.Header.Cookie(key))
 }
 
-// GetReqHeaders returns all HTTP request headers.
+// GetHeaders returns all HTTP request headers.
 //
 // Returns:
 //   - map[string][]string: A map of header keys and their respective values.
-func (c *Ctx) GetReqHeaders() map[string][]string {
+func (c *Ctx) GetHeaders() map[string][]string {
 	headers := make(map[string][]string)
 	c.root.Request.Header.VisitAll(func(k, v []byte) {
 		key := utils.UnsafeStr(k)
@@ -263,6 +271,17 @@ func (c *Ctx) GetReqHeaders() map[string][]string {
 	})
 
 	return headers
+}
+
+// GetHeader returns all HTTP request header.
+//
+// Parameters:
+//   - key (string): The name of the header to retrieve.
+//
+// Returns:
+//   - string: The value of the cookie; an empty string if not found.
+func (c *Ctx) GetHeader(key string) string {
+	return string(c.Root().Request.Header.Peek(key))
 }
 
 // Path retrieves the URI path of the current request.
