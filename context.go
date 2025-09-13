@@ -335,11 +335,11 @@ type IResponse interface {
 	// JSON sends a JSON response.
 	//
 	// Parameters:
-	//   - data (Data): The data to include in the JSON response.
+	//   - data (any): The data to include in the JSON response.
 	//
 	// Returns:
 	//   - error: An error if the response generation fails, otherwise nil.
-	JSON(data Data) error
+	JSON(data any) error
 
 	// HTML sends an HTML response.
 	//
@@ -387,6 +387,15 @@ type IResponse interface {
 	//   - error: An error if the redirect fails, otherwise nil.
 	Redirect(path string) error
 
+	// Proxy sends a proxy response.
+	//
+	// Parameters:
+	//   - targetURL (string): The URL path or full URL to proxy to.
+	//
+	// Returns:
+	//   - error: An error if the proxy fails, otherwise nil.
+	Proxy(targetURL string) error
+
 	// Download sends a file as an attachment.
 	//
 	// Parameters:
@@ -417,6 +426,7 @@ type IResponse interface {
 //   - error: An error if the response generation fails, otherwise nil.
 func (c *Ctx) Success(data any) error {
 	c.root.Response.SetStatusCode(StatusOK)
+
 	return c.JSON(data)
 }
 
@@ -561,6 +571,19 @@ func (c *Ctx) Redirect(path string) error {
 	log.Tracef("redirect to %s", path)
 
 	return errors.UnknownError
+}
+
+// Proxy sends a proxy response.
+//
+// Parameters:
+//   - targetURL (string): The URL path or full URL to proxy to.
+//
+// Returns:
+//   - error: An error if the proxy fails, otherwise nil.
+func (c *Ctx) Proxy(targetURL string) error {
+	c.Root().Request.SetRequestURI(targetURL)
+
+	return fasthttp.DoTimeout(&c.Root().Request, &c.Root().Response, time.Minute*5)
 }
 
 // Download transfers the file from the provided path as an attachment.
