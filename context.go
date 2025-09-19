@@ -8,6 +8,7 @@ import (
 	"github.com/gflydev/core/utils"
 	"github.com/valyala/fasthttp"
 	"io"
+	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -396,6 +397,15 @@ type IResponse interface {
 	//   - error: An error if the proxy fails, otherwise nil.
 	Proxy(targetURL string) error
 
+	// ProxyStream sends a proxy steam response.
+	//
+	// Parameters:
+	//   - targetURL (string): The URL path or full URL to proxy steaming to.
+	//
+	// Returns:
+	//   - error: An error if the proxy fails, otherwise nil.
+	ProxyStream(targetURL string) error
+
 	// Download sends a file as an attachment.
 	//
 	// Parameters:
@@ -583,7 +593,37 @@ func (c *Ctx) Redirect(path string) error {
 func (c *Ctx) Proxy(targetURL string) error {
 	c.Root().Request.SetRequestURI(targetURL)
 
+	log.Info("Proxy URL " + targetURL)
+
 	return fasthttp.DoTimeout(&c.Root().Request, &c.Root().Response, time.Minute*5)
+}
+
+// ProxyStream sends a proxy steam response.
+//
+// Parameters:
+//   - targetURL (string): The URL path or full URL to proxy steaming to.
+//
+// Returns:
+//   - error: An error if the proxy fails, otherwise nil.
+func (c *Ctx) ProxyStream(targetURL string) error {
+	// Make HTTP GET request to the target URL
+	resp, err := http.Get(targetURL)
+	if err != nil {
+		return err
+	}
+
+	// Set the content type from the response
+	if contentType := resp.Header.Get("Content-Type"); contentType != "" {
+		c.ContentType(contentType)
+	}
+
+	// Set the status code from the response
+	c.Status(resp.StatusCode)
+
+	log.Info("Proxy Steam URL " + targetURL)
+
+	// Stream the response body
+	return c.Stream(resp.Body)
 }
 
 // Download transfers the file from the provided path as an attachment.
