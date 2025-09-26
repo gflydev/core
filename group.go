@@ -19,6 +19,17 @@ type IGroupMiddleware interface {
 	// Parameters:
 	// - middlewares: Variadic parameter accepting one or more middleware handlers of type MiddlewareHandler.
 	Use(middlewares ...MiddlewareHandler)
+
+	// Apply creates an Interceptor chain handler for a specific handler.
+	//
+	// Note: Interceptors have access to response/request before and after the route handler is called
+	//
+	// Parameters:
+	//   - middleware ([]MiddlewareHandler): Middleware handlers to be grouped.
+	//
+	// Returns:
+	//   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
+	Apply(middleware ...MiddlewareHandler) func(IHandler) IHandler
 }
 
 // Use applies middleware for all router groups.
@@ -27,6 +38,23 @@ type IGroupMiddleware interface {
 // - middlewares: Variadic parameter accepting one or more middleware handlers of type MiddlewareHandler.
 func (g *Group) Use(middlewares ...MiddlewareHandler) {
 	g.middlewares = append(g.middlewares, middlewares...)
+}
+
+// Apply creates an Interceptor chain handler for a specific handler.
+//
+// Example usage:
+//
+//	group.POST("/one", group.Apply(middleware.RuleMiddlewareFunc)(api.NewDefaultApi()))
+//
+// Parameters:
+//   - middlewares ([]MiddlewareHandler): Middleware handlers to be grouped.
+//
+// Returns:
+//   - func(IHandler) IHandler: A function that applies the interceptor handlers to an IHandler.
+func (g *Group) Apply(middlewares ...MiddlewareHandler) func(IHandler) IHandler {
+	// Create a new middleware instance and use its Group method to apply the middlewares
+	middleware := NewMiddleware()
+	return middleware.Group(middlewares...)
 }
 
 // ===========================================================================================================
