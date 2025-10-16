@@ -188,6 +188,11 @@ type IHeader interface {
 	// Returns:
 	//   - string: The URI path as a string.
 	Path() string
+	// ClientIP returns the client's IP address.
+	//
+	// Returns:
+	//   - string: The client's IP address as a string.
+	ClientIP() string
 }
 
 // Status sets the response's HTTP status code.
@@ -292,6 +297,35 @@ func (c *Ctx) GetHeader(key string) string {
 func (c *Ctx) Path() string {
 	return string(c.root.URI().Path())
 }
+
+// ClientIP returns the client's IP address.
+//
+// The method looks for the IP address in the following headers (in order):
+// - X-Forwarded-For
+// - X-Real-IP
+// - CF-Connecting-IP
+//
+// If none of the headers are found, it returns the IP address from the
+// RemoteAddr field of the RequestCtx.
+//
+// Returns:
+//   - string: The client's IP address as a string.
+func (c *Ctx) ClientIP() string {
+	headers := []string{HeaderXForwardedFor, "X-Real-IP", "CF-Connecting-IP"}
+	for _, h := range headers {
+		if v := c.GetHeader(h); v != "" {
+			parts := strings.Split(v, ",")
+			return strings.TrimSpace(parts[0])
+		}
+	}
+	addr := c.Root().RemoteAddr().String()
+	if idx := strings.LastIndex(addr, ":"); idx > 0 {
+		return addr[:idx]
+	}
+	return addr
+}
+
+/* <<<<<<<<<<  bf4c8423-387f-4f50-88e9-0b6e7c54b55e  >>>>>>>>>>> */
 
 // ====================================================================
 //                         Ctx - Response Data
