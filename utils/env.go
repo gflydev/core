@@ -1,7 +1,6 @@
 package utils
 
 import (
-	_ "github.com/joho/godotenv/autoload" // Autoload .env file
 	"os"
 	"reflect"
 	"strconv"
