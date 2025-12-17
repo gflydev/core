@@ -5,6 +5,7 @@ import (
 	"github.com/gflydev/core/errors"
 	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
+	"net/http"
 	"strings"
 
 	"github.com/valyala/bytebufferpool"
@@ -132,6 +133,18 @@ func NewRouter() *Router {
 		HandleMethodNotAllowed: true,
 		HandleOPTIONS:          true,
 		PanicHandler: func(ctx *Ctx, data any) {
+			ctx.Status(fasthttp.StatusInternalServerError)
+
+			contentType := strings.ToLower(utils.UnsafeStr(ctx.root.Request.Header.ContentType()))
+			if strings.HasPrefix(contentType, MIMEApplicationJSON) {
+				_ = ctx.JSON(Data{
+					"code":    http.StatusInternalServerError,
+					"message": "Internal Server Error",
+				})
+			} else {
+				_ = ctx.HTML("<strong>Internal Server Error</strong>")
+			}
+
 			// Logs error details using the specified log levels.
 			log.Errorf("PanicHandler:: \n    - Context %s \n    - Error %v", ctx.root.String(), data)
 		},
