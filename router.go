@@ -132,7 +132,8 @@ func NewRouter() *Router {
 		HandleMethodNotAllowed: true,
 		HandleOPTIONS:          true,
 		PanicHandler: func(ctx *Ctx, data any) {
-			log.Errorf("%v", data)
+			// Logs error details using the specified log levels.
+			log.Errorf("PanicHandler:: \n    - Context %s \n    - Error %v", ctx.root.String(), data)
 		},
 		GlobalOPTIONS: func(ctx *Ctx) error {
 			// Set CORs headers

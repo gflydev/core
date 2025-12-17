@@ -193,8 +193,7 @@ func (fly *GFly) serveFastHTTP(ctx *fasthttp.RequestCtx) {
 //   - err (error): The error that has occurred.
 func (fly *GFly) errorHandler(ctx *fasthttp.RequestCtx, err error) {
 	// Logs error details using the specified log levels.
-	log.Debugf("Error %s", ctx.String()) // Debug log with context details.
-	log.Errorf("Error happens %v", err)  // Error log with error details.
+	log.Errorf("ErrorHandler:: \n    - Context %s \n    - Error %v", ctx.String(), err) // Error log with error details.
 }
 
 // New Create a new gFly application instance.
