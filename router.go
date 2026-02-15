@@ -460,6 +460,25 @@ type serveFilesCustomHandler struct {
 func (e *serveFilesCustomHandler) Handle(c *Ctx) error {
 	e.fileHandler(c.root)
 
+	if (c.root.Response.StatusCode() == fasthttp.StatusNotFound ||
+		c.root.Response.StatusCode() == fasthttp.StatusForbidden) &&
+		c.Path() != "/" {
+
+		c.root.ResetBody()
+		log.Warn("Request not found: ", c.Path())
+
+		if strings.HasPrefix(strings.ToLower(utils.UnsafeStr(c.root.Request.Header.ContentType())), MIMEApplicationJSON) {
+			return c.JSON(Data{
+				"code": 404,
+				"msg":  "404 Not Found",
+			})
+		}
+		return c.View("404", Data{
+			"title_page": "404 Not Found",
+			"msg":        utils.UnsafeStr(c.root.Response.Body()),
+		})
+	}
+
 	return nil
 }
 
