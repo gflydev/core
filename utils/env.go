@@ -4,6 +4,8 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 // Getenv retrieves an environment variable and parses it into the specified type,
