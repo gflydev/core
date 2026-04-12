@@ -433,7 +433,12 @@ func (fly *GFly) Group(path string, groupFunc func(*Group)) {
 	group := fly.router.Group(path)
 
 	// Auto-append middleware from gFly to the group.
-	group.middlewares = fly.middlewares
+	// Use append into a new slice to avoid sharing the backing array with fly.middlewares.
+	// A direct assignment (group.middlewares = fly.middlewares) copies only the slice header
+	// (pointer + len + cap). If the slice has spare capacity, a subsequent Use() call on
+	// the group would write into fly.middlewares' backing array, causing middleware from one
+	// group to bleed into sibling groups created afterward.
+	group.middlewares = append([]MiddlewareHandler{}, fly.middlewares...)
 
 	groupFunc(group)
 }

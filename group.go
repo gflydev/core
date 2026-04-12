@@ -241,7 +241,11 @@ func (g *Group) Group(path string, groupFunc func(*Group)) {
 	// Automatically append middleware from the parent to child routes.
 	// For example, if a parent group has prefix "/user" with middlewares A and B,
 	// all handlers in a subgroup with prefix "/info" inherit those middlewares (A, B).
-	group.middlewares = g.middlewares
+	// Use append into a new slice to avoid sharing the backing array with the parent.
+	// A direct assignment copies only the slice header (pointer + len + cap). If the
+	// parent slice has spare capacity, a Use() call inside groupFunc would write into
+	// the parent's backing array, causing middleware to bleed into sibling groups.
+	group.middlewares = append([]MiddlewareHandler{}, g.middlewares...)
 
 	groupFunc(group)
 }
