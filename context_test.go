@@ -376,3 +376,162 @@ func TestDeleteParam(t *testing.T) {
 		})
 	}
 }
+
+func TestParseQuery(t *testing.T) {
+	tests := []struct {
+		name     string
+		uri      string
+		expected Data
+	}{
+		{
+			name: "single scalar key",
+			uri:  "/?name=John",
+			expected: Data{
+				"name": "John",
+			},
+		},
+		{
+			name: "multiple scalar keys",
+			uri:  "/?name=John&age=30&active=true",
+			expected: Data{
+				"name":   "John",
+				"age":    "30",
+				"active": "true",
+			},
+		},
+		{
+			name: "array key with bracket suffix",
+			uri:  "/?tags[]=go&tags[]=web&tags[]=fast",
+			expected: Data{
+				"tags": []string{"go", "web", "fast"},
+			},
+		},
+		{
+			name: "single array key with bracket suffix",
+			uri:  "/?tags[]=only",
+			expected: Data{
+				"tags": "only",
+			},
+		},
+		{
+			name: "mixed scalar and array keys",
+			uri:  "/?name=John&ids[]=1&ids[]=2&active=true",
+			expected: Data{
+				"name":   "John",
+				"ids":    []string{"1", "2"},
+				"active": "true",
+			},
+		},
+		{
+			name:     "empty query string",
+			uri:      "/",
+			expected: Data{},
+		},
+		{
+			name: "key with empty value",
+			uri:  "/?empty=",
+			expected: Data{
+				"empty": "",
+			},
+		},
+		{
+			name: "repeated plain key accumulates into slice",
+			uri:  "/?key=first&key=second",
+			expected: Data{
+				"key": []string{"first", "second"},
+			},
+		},
+		{
+			name: "repeated bracket key accumulates into slice",
+			uri:  "/?key[]=first&key[]=second",
+			expected: Data{
+				"key": []string{"first", "second"},
+			},
+		},
+		{
+			name: "mixed plain and bracket forms for same key",
+			uri:  "/?key=first&key[]=second",
+			expected: Data{
+				"key": []string{"first", "second"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := createTestCtx()
+			ctx.root.Request.SetRequestURI(tt.uri)
+
+			data := Data{}
+			err := ctx.ParseQuery(&data)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, data)
+		})
+	}
+}
+
+func TestQueryStrArr(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.SetRequestURI("/?tags=go&tags=web&tags=fast")
+
+	result := ctx.QueryStrArr("tags")
+	assert.Equal(t, []string{"go", "web", "fast"}, result)
+
+	empty := ctx.QueryStrArr("missing")
+	assert.Empty(t, empty)
+}
+
+func TestQueryIntArr(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.SetRequestURI("/?ids=1&ids=2&ids=3")
+
+	result, err := ctx.QueryIntArr("ids")
+	assert.NoError(t, err)
+	assert.Equal(t, []int{1, 2, 3}, result)
+
+	empty, err := ctx.QueryIntArr("missing")
+	assert.NoError(t, err)
+	assert.Empty(t, empty)
+
+	ctx2 := createTestCtx()
+	ctx2.root.Request.SetRequestURI("/?ids=1&ids=bad")
+	_, err = ctx2.QueryIntArr("ids")
+	assert.Error(t, err)
+}
+
+func TestQueryBoolArr(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.SetRequestURI("/?flags=true&flags=false&flags=1")
+
+	result, err := ctx.QueryBoolArr("flags")
+	assert.NoError(t, err)
+	assert.Equal(t, []bool{true, false, true}, result)
+
+	empty, err := ctx.QueryBoolArr("missing")
+	assert.NoError(t, err)
+	assert.Empty(t, empty)
+
+	ctx2 := createTestCtx()
+	ctx2.root.Request.SetRequestURI("/?flags=true&flags=notbool")
+	_, err = ctx2.QueryBoolArr("flags")
+	assert.Error(t, err)
+}
+
+func TestQueryFloatArr(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.SetRequestURI("/?scores=1.1&scores=2.2&scores=3.3")
+
+	result, err := ctx.QueryFloatArr("scores")
+	assert.NoError(t, err)
+	assert.Equal(t, []float64{1.1, 2.2, 3.3}, result)
+
+	empty, err := ctx.QueryFloatArr("missing")
+	assert.NoError(t, err)
+	assert.Empty(t, empty)
+
+	ctx2 := createTestCtx()
+	ctx2.root.Request.SetRequestURI("/?scores=1.1&scores=notfloat")
+	_, err = ctx2.QueryFloatArr("scores")
+	assert.Error(t, err)
+}

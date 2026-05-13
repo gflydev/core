@@ -271,10 +271,10 @@ func (c *Ctx) GetCookie(key string) string {
 //   - map[string][]string: A map of header keys and their respective values.
 func (c *Ctx) GetHeaders() map[string][]string {
 	headers := make(map[string][]string)
-	c.root.Request.Header.VisitAll(func(k, v []byte) {
+	for k, v := range c.root.Request.Header.All() {
 		key := utils.UnsafeStr(k)
 		headers[key] = append(headers[key], utils.UnsafeStr(v))
-	})
+	}
 
 	return headers
 }
@@ -1054,6 +1054,45 @@ type IRequestData interface {
 	//   - error: An error if the value cannot be converted to a float.
 	QueryFloat(key string) (float64, error)
 
+	// QueryStrArr retrieves all string values for a key from the query string.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - []string: All values associated with the provided key.
+	QueryStrArr(key string) []string
+
+	// QueryIntArr retrieves all integer values for a key from the query string.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - []int: All values associated with the provided key that can be parsed as integers.
+	//   - error: An error if any value cannot be converted to an integer.
+	QueryIntArr(key string) ([]int, error)
+
+	// QueryBoolArr retrieves all boolean values for a key from the query string.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - []bool: All values associated with the provided key that can be parsed as booleans.
+	//   - error: An error if any value cannot be converted to a boolean.
+	QueryBoolArr(key string) ([]bool, error)
+
+	// QueryFloatArr retrieves all float values for a key from the query string.
+	//
+	// Parameters:
+	//   - key (string): The key to retrieve from the query string.
+	//
+	// Returns:
+	//   - []float64: All values associated with the provided key that can be parsed as floats.
+	//   - error: An error if any value cannot be converted to a float.
+	QueryFloatArr(key string) ([]float64, error)
+
 	// PathVal retrieves a value from the path parameters of the HTTP request.
 	//
 	// Parameters:
@@ -1117,33 +1156,19 @@ func (c *Ctx) ParseBody(data any) error {
 // Returns:
 //   - error: Always returns nil (currently not implemented).
 func (c *Ctx) ParseQuery(data *Data) error {
-	c.root.QueryArgs().VisitAll(func(key, value []byte) {
-		keyStr := string(key)
+	for key, value := range c.root.QueryArgs().All() {
+		baseKey := strings.TrimSuffix(string(key), "[]")
 		valStr := string(value)
 
-		// Check if the key has the array suffix []
-		if strings.HasSuffix(keyStr, "[]") {
-			// Remove the [] suffix to get the base key name
-			baseKey := strings.TrimSuffix(keyStr, "[]")
-
-			// Get the existing array if it exists
-			var values []string
-			if existingVal := data.Get(baseKey); existingVal != nil {
-				if existingArray, ok := existingVal.([]string); ok {
-					values = existingArray
-				}
-			}
-
-			// Add the new value to the array
-			values = append(values, valStr)
-
-			// Set the array back to the base key
-			data.Set(baseKey, values)
-		} else {
-			// Regular key, set directly
-			data.Set(keyStr, valStr)
+		switch existing := data.Get(baseKey).(type) {
+		case nil:
+			data.Set(baseKey, valStr)
+		case string:
+			data.Set(baseKey, []string{existing, valStr})
+		case []string:
+			data.Set(baseKey, append(existing, valStr))
 		}
-	})
+	}
 
 	return nil
 }
@@ -1298,9 +1323,9 @@ func (c *Ctx) FormUpload(files ...string) ([]UploadedFile, error) {
 //   - map[string]string: A map of key-value pairs representing the query string data.
 func (c *Ctx) Posts() map[string][]byte {
 	m := make(map[string][]byte, c.root.PostArgs().Len())
-	c.root.PostArgs().VisitAll(func(key, value []byte) {
+	for key, value := range c.root.PostArgs().All() {
 		m[string(key)] = value
-	})
+	}
 	return m
 }
 
@@ -1377,9 +1402,9 @@ func (c *Ctx) PostFloat(key string) (float64, error) {
 //   - map[string]string: A map of key-value pairs representing the query string data.
 func (c *Ctx) Queries() map[string]string {
 	m := make(map[string]string, c.root.QueryArgs().Len())
-	c.root.QueryArgs().VisitAll(func(key, value []byte) {
+	for key, value := range c.root.QueryArgs().All() {
 		m[string(key)] = string(value)
-	})
+	}
 	return m
 }
 
@@ -1448,6 +1473,85 @@ func (c *Ctx) QueryFloat(key string) (float64, error) {
 	}
 
 	return strconv.ParseFloat(string(data), 64)
+}
+
+// QueryStrArr retrieves all string values for a key from the query string.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - []string: All values associated with the provided key.
+func (c *Ctx) QueryStrArr(key string) []string {
+	raw := c.root.QueryArgs().PeekMulti(key)
+	result := make([]string, len(raw))
+	for i, v := range raw {
+		result[i] = string(v)
+	}
+	return result
+}
+
+// QueryIntArr retrieves all integer values for a key from the query string.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - []int: All values associated with the provided key.
+//   - error: An error if any value cannot be converted to an integer.
+func (c *Ctx) QueryIntArr(key string) ([]int, error) {
+	raw := c.root.QueryArgs().PeekMulti(key)
+	result := make([]int, 0, len(raw))
+	for _, v := range raw {
+		n, err := strconv.Atoi(string(v))
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, n)
+	}
+	return result, nil
+}
+
+// QueryBoolArr retrieves all boolean values for a key from the query string.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - []bool: All values associated with the provided key.
+//   - error: An error if any value cannot be converted to a boolean.
+func (c *Ctx) QueryBoolArr(key string) ([]bool, error) {
+	raw := c.root.QueryArgs().PeekMulti(key)
+	result := make([]bool, 0, len(raw))
+	for _, v := range raw {
+		b, err := strconv.ParseBool(string(v))
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, b)
+	}
+	return result, nil
+}
+
+// QueryFloatArr retrieves all float values for a key from the query string.
+//
+// Parameters:
+//   - key (string): The key to retrieve from the query string.
+//
+// Returns:
+//   - []float64: All values associated with the provided key.
+//   - error: An error if any value cannot be converted to a float.
+func (c *Ctx) QueryFloatArr(key string) ([]float64, error) {
+	raw := c.root.QueryArgs().PeekMulti(key)
+	result := make([]float64, 0, len(raw))
+	for _, v := range raw {
+		f, err := strconv.ParseFloat(string(v), 64)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, f)
+	}
+	return result, nil
 }
 
 // PathVal retrieves a value from the path parameters of the HTTP request.
