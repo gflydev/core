@@ -93,3 +93,30 @@ func TestTreeAddMultiplePaths(t *testing.T) {
 		}, "Adding path %s should not panic", path)
 	}
 }
+
+// TestLongestCommonPrefix verifies byte-based prefix matching, including the
+// previously-broken multi-byte UTF-8 case where the rune-count bound made the
+// loop exit early and under-report the prefix length.
+func TestLongestCommonPrefix(t *testing.T) {
+	tests := []struct {
+		name string
+		a, b string
+		want int
+	}{
+		{"identical ascii", "/users", "/users", 6},
+		{"partial ascii", "/users", "/us_rs", 3},
+		{"no common", "abc", "xyz", 0},
+		{"empty a", "", "abc", 0},
+		{"empty b", "abc", "", 0},
+		{"prefix shorter", "/user", "/users", 5},
+		{"identical multibyte", "ééé", "ééé", len("ééé")},
+		{"partial multibyte", "é-a", "é-b", len("é-")},
+		{"multibyte then differ", "café", "cafx", 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, longestCommonPrefix(tt.a, tt.b))
+		})
+	}
+}

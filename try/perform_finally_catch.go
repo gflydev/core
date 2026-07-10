@@ -21,8 +21,10 @@ type (
 	// It is the main structure that chains try, finally, and catch blocks.
 	// It holds the state of the error handling process.
 	It struct {
-		finally F // The function to execute in the finally block
-		Error   E // The error/panic value if one occurred
+		finally     F    // The function to execute in the finally block
+		Error       E    // The error/panic value if one occurred
+		caught      bool // Whether Catch has already processed the error
+		finallyDone bool // Whether the finally block has already executed
 	}
 )
 
@@ -75,7 +77,7 @@ func Throw(e E) {
 //	})
 func Perform(funcToTry F) (o *It) {
 	// Create a new It instance with no finally function and no error
-	o = &It{nil, nil}
+	o = &It{}
 
 	// Set up recovery to catch any panics from the try block
 	defer func() {
@@ -116,7 +118,26 @@ func (o *It) Finally(finallyFunc F) *It {
 	}
 
 	o.finally = finallyFunc
+
+	// Run the finally block now when there is nothing left to wait for:
+	//   - no error occurred (Catch would be a no-op), or
+	//   - the error was already handled by a preceding Catch (reversed order:
+	//     Perform(f).Catch(c).Finally(g)).
+	// When an unhandled error is pending, defer execution to Catch so the
+	// documented order (catch runs before finally) is preserved.
+	if o.Error == nil || o.caught {
+		o.runFinally()
+	}
+
 	return o
+}
+
+// runFinally executes the registered finally block exactly once.
+func (o *It) runFinally() {
+	if o.finally != nil && !o.finallyDone {
+		o.finallyDone = true
+		o.finally()
+	}
 }
 
 // Catch registers an error-handling function that is executed if an error occurs
@@ -144,14 +165,16 @@ func (o *It) Finally(finallyFunc F) *It {
 //	    log.Printf("Error: %v", e)
 //	})
 func (o *It) Catch(funcCaught EF) *It {
+	// Mark the error as handled so a Finally chained *after* this Catch still
+	// runs (reversed order: Perform(f).Catch(c).Finally(g)).
+	o.caught = true
+
 	// Check if an error occurred in the try block
 	if o.Error != nil {
 		// Set up recovery to catch any panics from the catch block
 		defer func() {
 			// Always execute the finally block if one is registered
-			if o.finally != nil {
-				o.finally()
-			}
+			o.runFinally()
 
 			// Check if the catch block panicked
 			if err := recover(); err != nil {
@@ -166,9 +189,9 @@ func (o *It) Catch(funcCaught EF) *It {
 
 		// Execute the catch block with the error
 		funcCaught(o.Error)
-	} else if o.finally != nil {
+	} else {
 		// If no error occurred but a finally block is registered, execute it
-		o.finally()
+		o.runFinally()
 	}
 
 	return o

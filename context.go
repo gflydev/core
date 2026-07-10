@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gflydev/core/errors"
@@ -8,6 +9,7 @@ import (
 	"github.com/gflydev/core/utils"
 	"github.com/valyala/fasthttp"
 	"io"
+	"net"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -33,6 +35,21 @@ type Ctx struct {
 // Returns:
 //   - *fasthttp.RequestCtx: The root HTTP request context.
 func (c *Ctx) Root() *fasthttp.RequestCtx {
+	return c.root
+}
+
+// Context returns a context.Context tied to the lifetime of the request.
+//
+// fasthttp's *RequestCtx already implements context.Context, so this exposes it
+// for propagating deadlines, cancellation and request-scoped values into
+// downstream calls (database queries, outbound HTTP clients, tracing).
+//
+// Note: like the rest of Ctx, the returned context must not be retained beyond
+// the handler's return, since fasthttp recycles the underlying RequestCtx.
+//
+// Returns:
+//   - context.Context: A context bound to the current request.
+func (c *Ctx) Context() context.Context {
 	return c.root
 }
 
@@ -244,12 +261,68 @@ func (c *Ctx) SetHeader(key, val string) *Ctx {
 // Returns:
 //   - *Ctx: The current HTTP context.
 func (c *Ctx) SetCookie(key, value string) *Ctx {
-	cook := fasthttp.Cookie{}
+	return c.SetCookieOptions(key, value, CookieOptions{
+		Path:     "/",
+		MaxAge:   defaultCookieMaxAge,
+		HTTPOnly: true,
+		SameSite: fasthttp.CookieSameSiteLaxMode,
+	})
+}
+
+// defaultCookieMaxAge is the default cookie lifetime in seconds (24 hours).
+const defaultCookieMaxAge = 24 * 60 * 60
+
+// CookieOptions configures a response cookie set via SetCookieOptions.
+type CookieOptions struct {
+	// Path scopes the cookie. Empty defaults to "/".
+	Path string
+	// Domain scopes the cookie to a domain. Empty leaves it host-only.
+	Domain string
+	// MaxAge is the cookie lifetime in seconds. Zero omits Max-Age (session cookie).
+	MaxAge int
+	// HTTPOnly hides the cookie from client-side JavaScript (mitigates XSS theft).
+	HTTPOnly bool
+	// Secure restricts the cookie to HTTPS connections.
+	Secure bool
+	// SameSite controls cross-site sending; use fasthttp.CookieSameSite* values.
+	SameSite fasthttp.CookieSameSite
+}
+
+// SetCookieOptions sets a response cookie with explicit attributes.
+//
+// Prefer this over SetCookie when you need to control Secure/SameSite/Domain or
+// a custom lifetime. SetCookie applies safe defaults (Path=/, HttpOnly, SameSite=Lax).
+//
+// Parameters:
+//   - key (string): The cookie name.
+//   - value (string): The cookie value.
+//   - opts (CookieOptions): The cookie attributes.
+//
+// Returns:
+//   - *Ctx: The current context for chaining.
+func (c *Ctx) SetCookieOptions(key, value string, opts CookieOptions) *Ctx {
+	cook := fasthttp.AcquireCookie()
+	defer fasthttp.ReleaseCookie(cook)
+
 	cook.SetKey(key)
 	cook.SetValue(value)
-	cook.SetMaxAge(3600000)
 
-	c.root.Response.Header.SetCookie(&cook)
+	if opts.Path == "" {
+		opts.Path = "/"
+	}
+	cook.SetPath(opts.Path)
+
+	if opts.Domain != "" {
+		cook.SetDomain(opts.Domain)
+	}
+	if opts.MaxAge != 0 {
+		cook.SetMaxAge(opts.MaxAge)
+	}
+	cook.SetHTTPOnly(opts.HTTPOnly)
+	cook.SetSecure(opts.Secure)
+	cook.SetSameSite(opts.SameSite)
+
+	c.root.Response.Header.SetCookie(cook)
 
 	return c
 }
@@ -271,9 +344,12 @@ func (c *Ctx) GetCookie(key string) string {
 //   - map[string][]string: A map of header keys and their respective values.
 func (c *Ctx) GetHeaders() map[string][]string {
 	headers := make(map[string][]string)
+	// Copy the key/value bytes with string(...) rather than utils.UnsafeStr: the
+	// returned map is expected to outlive the request, but UnsafeStr aliases
+	// fasthttp's buffers, which are reused/reclaimed once the handler returns.
 	for k, v := range c.root.Request.Header.All() {
-		key := utils.UnsafeStr(k)
-		headers[key] = append(headers[key], utils.UnsafeStr(v))
+		key := string(k)
+		headers[key] = append(headers[key], string(v))
 	}
 
 	return headers
@@ -300,32 +376,36 @@ func (c *Ctx) Path() string {
 
 // ClientIP returns the client's IP address.
 //
-// The method looks for the IP address in the following headers (in order):
-// - X-Forwarded-For
-// - X-Real-IP
-// - CF-Connecting-IP
-//
-// If none of the headers are found, it returns the IP address from the
-// RemoteAddr field of the RequestCtx.
+// By default it returns the peer address from RemoteAddr. Client-supplied
+// forwarding headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP) are trusted
+// only when TrustProxyHeaders is enabled, because any client can forge them —
+// blindly trusting them would defeat rate limiting, IP allow-lists and audit
+// logging. Enable TrustProxyHeaders (env TRUST_PROXY_HEADERS=true) only when the
+// server sits behind a trusted reverse proxy that sets these headers.
 //
 // Returns:
 //   - string: The client's IP address as a string.
 func (c *Ctx) ClientIP() string {
-	headers := []string{HeaderXForwardedFor, "X-Real-IP", "CF-Connecting-IP"}
-	for _, h := range headers {
-		if v := c.GetHeader(h); v != "" {
-			parts := strings.Split(v, ",")
-			return strings.TrimSpace(parts[0])
+	if TrustProxyHeaders {
+		headers := []string{HeaderXForwardedFor, "X-Real-IP", "CF-Connecting-IP"}
+		for _, h := range headers {
+			if v := c.GetHeader(h); v != "" {
+				// X-Forwarded-For may be a comma-separated list; the first entry
+				// is the originating client.
+				parts := strings.Split(v, ",")
+				return strings.TrimSpace(parts[0])
+			}
 		}
 	}
+
 	addr := c.Root().RemoteAddr().String()
-	if idx := strings.LastIndex(addr, ":"); idx > 0 {
-		return addr[:idx]
+	// Strip the port. net.SplitHostPort correctly handles IPv6 ("[::1]:80"),
+	// unlike a naive LastIndex(":") which would truncate a bare IPv6 address.
+	if host, _, err := net.SplitHostPort(addr); err == nil {
+		return host
 	}
 	return addr
 }
-
-/* <<<<<<<<<<  bf4c8423-387f-4f50-88e9-0b6e7c54b55e  >>>>>>>>>>> */
 
 // ====================================================================
 //                         Ctx - Response Data
@@ -790,22 +870,27 @@ func (c *Ctx) File(file string, compress ...bool) error {
 func (c *Ctx) Compress(body []byte) error {
 	ctx := c.root
 
+	// Advertise that the response varies on the Accept-Encoding request header so
+	// caches store per-encoding variants instead of serving a mismatched one.
+	ctx.Response.Header.Add(HeaderVary, HeaderAcceptEncoding)
+
 	switch {
 	case ctx.Request.Header.HasAcceptEncodingBytes([]byte(StrGzip)):
-		_, err := fasthttp.WriteGzip(ctx.Response.BodyWriter(), body)
-		if err != nil {
+		if _, err := fasthttp.WriteGzip(ctx.Response.BodyWriter(), body); err != nil {
 			return err
 		}
-	case ctx.Request.Header.HasAcceptEncodingBytes([]byte(StrBrotli)):
-		_, err := fasthttp.WriteBrotli(ctx.Response.BodyWriter(), body)
-		if err != nil {
+		ctx.Response.Header.SetBytesV(HeaderContentEncoding, []byte(StrGzip))
+	case ctx.Request.Header.HasAcceptEncodingBytes([]byte(StrBr)):
+		// Clients negotiate Brotli with the token "br" (StrBr), not "brotli".
+		if _, err := fasthttp.WriteBrotli(ctx.Response.BodyWriter(), body); err != nil {
 			return err
 		}
+		ctx.Response.Header.SetBytesV(HeaderContentEncoding, []byte(StrBr))
 	case ctx.Request.Header.HasAcceptEncodingBytes([]byte(StrDeflate)):
-		_, err := fasthttp.WriteDeflate(ctx.Response.BodyWriter(), body)
-		if err != nil {
+		if _, err := fasthttp.WriteDeflate(ctx.Response.BodyWriter(), body); err != nil {
 			return err
 		}
+		ctx.Response.Header.SetBytesV(HeaderContentEncoding, []byte(StrDeflate))
 	default:
 		ctx.Response.SetBodyRaw(body)
 	}
@@ -1146,6 +1231,74 @@ func (c *Ctx) ParseBody(data any) error {
 	}
 
 	return nil
+}
+
+// Validator is implemented by request payloads that can validate themselves.
+// When a value passed to Bind implements this interface, Bind calls Validate
+// after decoding and returns any error it produces.
+type Validator interface {
+	Validate() error
+}
+
+// Bind decodes the request body into data and validates it.
+//
+// The body is decoded according to the request Content-Type: JSON is unmarshalled
+// with encoding/json; an unset or unrecognized Content-Type falls back to JSON.
+// After a successful decode, if data implements Validator, Bind calls
+// data.Validate() and returns its error. This gives a single call site for the
+// common "decode then validate" flow instead of manual ParseBody + checks.
+//
+// Parameters:
+//   - data (any): A pointer to the destination struct.
+//
+// Returns:
+//   - error: A decode error, a validation error, or nil.
+func (c *Ctx) Bind(data any) error {
+	contentType := strings.ToLower(strings.TrimSpace(c.GetHeader(HeaderContentType)))
+
+	switch {
+	case strings.HasPrefix(contentType, MIMEApplicationForm),
+		strings.HasPrefix(contentType, MIMEMultipartForm):
+		if err := c.bindForm(data); err != nil {
+			return err
+		}
+	default:
+		// Default to JSON for application/json and unspecified content types.
+		if err := c.ParseBody(data); err != nil {
+			return err
+		}
+	}
+
+	if v, ok := data.(Validator); ok {
+		return v.Validate()
+	}
+
+	return nil
+}
+
+// bindForm decodes url-encoded / multipart form values into data by routing them
+// through JSON. This keeps a single decoding path (encoding/json struct tags)
+// without pulling in a form-decoding dependency.
+//
+// Form values are inherently strings, so numeric/bool target fields must opt in
+// with the encoding/json ",string" tag option (e.g. `json:"age,string"`);
+// otherwise decode them from string fields or read them with the typed Form*
+// accessors.
+func (c *Ctx) bindForm(data any) error {
+	form := Data{}
+	c.root.PostArgs().VisitAll(func(key, value []byte) {
+		form.Set(string(key), string(value))
+	})
+	for key, value := range c.root.QueryArgs().All() {
+		form.Set(string(key), string(value))
+	}
+
+	encoded, err := json.Marshal(form)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(encoded, data)
 }
 
 // ParseQuery parses the query string into the provided struct.

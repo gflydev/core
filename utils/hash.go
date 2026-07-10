@@ -27,7 +27,10 @@ func Sha256(args ...any) string {
 	hash := sha256.New()
 
 	// Format the arguments into a single string, separated by hyphens ("-").
-	code := fmt.Sprintf(strings.Join(strSlice, "-"), args)
+	// Expand args with "..." so each "%v" verb consumes one argument; passing
+	// the slice directly would render the whole slice into the first verb and
+	// leave the rest as "%!v(MISSING)".
+	code := fmt.Sprintf(strings.Join(strSlice, "-"), args...)
 
 	// Write the formatted string into the hash.
 	hash.Write([]byte(code))

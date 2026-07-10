@@ -78,3 +78,20 @@ func Test_MD5(t *testing.T) {
 		})
 	}
 }
+
+// Test_Sha256_MultiArg verifies that multiple arguments are all incorporated
+// into the hash (previously the slice was passed without expansion, so only the
+// first verb consumed a value and the rest rendered as "%!v(MISSING)"), so
+// distinct trailing arguments must produce distinct hashes.
+func Test_Sha256_MultiArg(t *testing.T) {
+	// Differ only in the second argument.
+	h1 := Sha256("a", "b")
+	h2 := Sha256("a", "c")
+	require.NotEqual(t, h1, h2, "second argument must affect the hash")
+
+	// Output must not contain fmt's missing-verb marker.
+	require.NotContains(t, Sha256("a", "b", "c"), "MISSING")
+
+	// Same inputs must be stable.
+	require.Equal(t, Sha256("x", "y", "z"), Sha256("x", "y", "z"))
+}

@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/valyala/bytebufferpool"
 )
@@ -104,20 +103,6 @@ func panicf(s string, args ...any) {
 	panic(fmt.Sprintf(s, args...))
 }
 
-// minVal returns the smaller of two integers.
-// Parameters:
-//   - a: The first integer.
-//   - b: The second integer.
-//
-// Returns:
-//   - int: The smaller value between a and b.
-func minVal(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
-}
-
 func bufferRemoveString(buf *bytebufferpool.ByteBuffer, s string) {
 	buf.B = buf.B[:len(buf.B)-len(s)]
 }
@@ -133,21 +118,16 @@ func bufferRemoveString(buf *bytebufferpool.ByteBuffer, s string) {
 // Returns:
 //   - int: The length of the longest common prefix between the two input strings.
 func longestCommonPrefix(a, b string) int {
+	// Compare byte-by-byte. The previous rune-based implementation compared a
+	// byte offset (i += rune size) against a rune count, so it terminated early
+	// for any multi-byte UTF-8 path and reported a too-short prefix, corrupting
+	// node splitting. Byte comparison is correct here (identical byte prefixes
+	// imply identical rune prefixes) and matches httprouter's approach.
+	maxVal := min(len(a), len(b))
+
 	i := 0
-	maxVal := minVal(utf8.RuneCountInString(a), utf8.RuneCountInString(b))
-
-	for i < maxVal {
-		ra, sizeA := utf8.DecodeRuneInString(a)
-		rb, sizeB := utf8.DecodeRuneInString(b)
-
-		a = a[sizeA:]
-		b = b[sizeB:]
-
-		if ra != rb {
-			return i
-		}
-
-		i += sizeA
+	for i < maxVal && a[i] == b[i] {
+		i++
 	}
 
 	return i
