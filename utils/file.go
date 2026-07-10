@@ -65,7 +65,9 @@ func RenameFile(fileName, newName string) string {
 //   - bool: True if the file exists and is not a directory, false otherwise.
 func FileExists(path string) bool {
 	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
+	// Any stat error (not just NotExist, e.g. permission denied or ENOTDIR)
+	// leaves info nil; guard against it before dereferencing.
+	if err != nil {
 		return false
 	}
 	return !info.IsDir()
@@ -80,7 +82,7 @@ func FileExists(path string) bool {
 //   - bool: True if the directory exists, false otherwise.
 func DirExists(path string) bool {
 	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
+	if err != nil {
 		return false
 	}
 	return info.IsDir()

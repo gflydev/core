@@ -206,3 +206,21 @@ func Benchmark_Rand(b *testing.B) {
 		}
 	})
 }
+
+// TestRandByte_SmallLengths guards against the previous rejection-sampling
+// infinite loop for small dst: when every byte in a fixed size-length buffer
+// masked to a rejected value, the loop never advanced. Each call must terminate
+// and fill the slice with charset characters.
+func TestRandByte_SmallLengths(t *testing.T) {
+	for n := 1; n <= 8; n++ {
+		for i := 0; i < 2000; i++ {
+			dst := make([]byte, n)
+			RandByte(dst)
+
+			assert.Len(t, dst, n)
+			for _, b := range dst {
+				assert.Contains(t, charset, string(b), "byte must be a charset character")
+			}
+		}
+	}
+}

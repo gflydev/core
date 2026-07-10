@@ -271,6 +271,65 @@ func TestFinally_CalledTwice(t *testing.T) {
 	}, "Calling Finally twice should panic")
 }
 
+func TestFinally_WithoutCatch(t *testing.T) {
+	// Regression: Finally must run even when no Catch is chained and no error
+	// occurred. Previously finally was only executed inside Catch.
+	calledFinally := false
+
+	Perform(func() {
+		// Do nothing
+	}).Finally(func() {
+		calledFinally = true
+	})
+
+	assert.True(t, calledFinally, "Finally should run without a Catch when no error occurs")
+}
+
+func TestFinally_AfterCatch_NormalFlow(t *testing.T) {
+	// Regression: reversed order Catch().Finally() must still run finally.
+	calledCatch := false
+	calledFinally := false
+
+	Perform(func() {
+		// Do nothing
+	}).Catch(func(_ E) {
+		calledCatch = true
+	}).Finally(func() {
+		calledFinally = true
+	})
+
+	assert.False(t, calledCatch, "Catch should not run in normal flow")
+	assert.True(t, calledFinally, "Finally chained after Catch should run")
+}
+
+func TestFinally_AfterCatch_Order(t *testing.T) {
+	// Regression: with reversed order and an error, catch must run before finally.
+	var order []string
+
+	Perform(func() {
+		panic("boom")
+	}).Catch(func(_ E) {
+		order = append(order, "catch")
+	}).Finally(func() {
+		order = append(order, "finally")
+	})
+
+	assert.Equal(t, []string{"catch", "finally"}, order, "Catch must run before Finally")
+}
+
+func TestFinally_RunsOnce(t *testing.T) {
+	// Finally must execute exactly once regardless of chain order.
+	count := 0
+
+	Perform(func() {
+		// Do nothing
+	}).Finally(func() {
+		count++
+	}).Catch(func(_ E) {})
+
+	assert.Equal(t, 1, count, "Finally should run exactly once")
+}
+
 func TestThrow_DirectCall(t *testing.T) {
 	// Test direct calls to Throw
 	tests := map[string]struct {

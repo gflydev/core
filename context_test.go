@@ -535,3 +535,60 @@ func TestQueryFloatArr(t *testing.T) {
 	_, err = ctx2.QueryFloatArr("scores")
 	assert.Error(t, err)
 }
+
+// bindPayload is a test type implementing Validator.
+type bindPayload struct {
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
+func (p *bindPayload) Validate() error {
+	if p.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	return nil
+}
+
+func TestBind_JSONWithValidation(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.Header.SetContentType("application/json")
+	ctx.root.Request.SetBody([]byte(`{"name":"vinh","age":30}`))
+
+	var p bindPayload
+	err := ctx.Bind(&p)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "vinh", p.Name)
+	assert.Equal(t, 30, p.Age)
+}
+
+func TestBind_ValidationError(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.Header.SetContentType("application/json")
+	ctx.root.Request.SetBody([]byte(`{"age":30}`))
+
+	var p bindPayload
+	err := ctx.Bind(&p)
+
+	assert.Error(t, err, "missing required field should fail validation")
+}
+
+// formPayload uses the encoding/json ",string" tag so a numeric field binds
+// from a string form value.
+type formPayload struct {
+	Name string `json:"name"`
+	Age  int    `json:"age,string"`
+}
+
+func TestBind_FormURLEncoded(t *testing.T) {
+	ctx := createTestCtx()
+	ctx.root.Request.Header.SetContentType("application/x-www-form-urlencoded")
+	ctx.root.Request.SetBody([]byte("name=vinh&age=42"))
+
+	var p formPayload
+	err := ctx.Bind(&p)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "vinh", p.Name)
+	assert.Equal(t, 42, p.Age)
+}

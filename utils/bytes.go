@@ -25,23 +25,28 @@ func RandByte(dst []byte) []byte {
 	// Retrieve a buffer from the pool.
 	buf := randBytesPool.Get()
 
-	// Extend the buffer to match the required length.
-	buf.B = ExtendByte(buf.B, len(dst))
-
-	// Read cryptographically secure random bytes into the buffer.
-	if _, err := crand.Read(buf.B); err != nil {
-		panic(err) // Panic if random byte generation fails.
-	}
-
 	// The length of the destination slice.
 	size := len(dst)
 
-	// Fill the destination slice using the random bytes and mask them to fit the charset.
-	for i, j := 0, 0; i < size; j++ {
-		// Mask bytes to get an index into the character slice.
-		if idx := int(buf.B[j%size] & charsetIdxMask); idx < len(charset) {
-			dst[i] = charset[idx] // Map the random byte to a character in the charset.
-			i++
+	// Fill the destination using rejection sampling. Random bytes are masked to
+	// charsetIdxBits and only accepted when they land inside the charset (no
+	// modulo bias). Each pass draws a *fresh* batch of random bytes, so progress
+	// is always made. The previous implementation indexed a fixed size-length
+	// buffer with j%size, which could loop forever for a small dst if every one
+	// of those bytes masked to a rejected value (>= len(charset)).
+	for i := 0; i < size; {
+		buf.B = ExtendByte(buf.B, size)
+		if _, err := crand.Read(buf.B); err != nil {
+			randBytesPool.Put(buf)
+			panic(err) // Panic if random byte generation fails.
+		}
+
+		for j := 0; j < size && i < size; j++ {
+			// Mask bytes to get an index into the character slice.
+			if idx := int(buf.B[j] & charsetIdxMask); idx < len(charset) {
+				dst[i] = charset[idx] // Map the random byte to a character in the charset.
+				i++
+			}
 		}
 	}
 

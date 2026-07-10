@@ -2,9 +2,12 @@ package core
 
 import (
 	"fmt"
+	"net"
+
 	"github.com/gflydev/core/log"
 	"github.com/gflydev/core/utils"
 	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/prefork"
 )
 
 // ====================================================================
@@ -35,6 +38,14 @@ var (
 	LogDir = utils.Getenv("LOG_DIR", "storage/logs") // Directory `{APP}/storage/log`
 	// AppDir specifies the application-specific directory within the storage, fetched from `APP_DIR` environment variable or defaults to "storage/app".
 	AppDir = utils.Getenv("APP_DIR", "storage/app") // Directory `{APP}/storage/app`
+
+	// Security
+
+	// TrustProxyHeaders controls whether Ctx.ClientIP trusts client-supplied
+	// forwarding headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP). Fetched
+	// from the `TRUST_PROXY_HEADERS` environment variable, defaults to false.
+	// Enable it only when the server is behind a trusted reverse proxy.
+	TrustProxyHeaders = utils.Getenv("TRUST_PROXY_HEADERS", false)
 
 	// Internal variables
 
@@ -158,15 +169,49 @@ func (fly *GFly) Run() {
 
 	certFile := utils.Getenv("SERVER_TLS_CERT", "")
 	keyFile := utils.Getenv("SERVER_TLS_KEY", "")
+	hasTLS := certFile != "" && keyFile != ""
 
-	switch {
-	case certFile != "" && keyFile != "":
-		if err := fly.server.ListenAndServeTLS(url, certFile, keyFile); err != nil {
+	// Resolve the configured network ("tcp", "tcp4", "tcp6"); default to tcp4.
+	network := fly.config.Network
+	if network == "" {
+		network = NetworkTCP4
+	}
+
+	// --------------- Prefork mode ---------------
+	// Spawn multiple worker processes listening on the same address (SO_REUSEPORT).
+	if fly.config.Prefork {
+		pf := prefork.New(fly.server)
+		pf.Network = network
+
+		var err error
+		if hasTLS {
+			// prefork.ListenAndServeTLS takes (addr, keyFile, certFile).
+			err = pf.ListenAndServeTLS(url, keyFile, certFile)
+		} else {
+			err = pf.ListenAndServe(url)
+		}
+		if err != nil {
 			log.Fatalf("Error start server %v", err)
 		}
-	default:
-		log.Fatal(fly.server.ListenAndServe(url))
+		return
 	}
+
+	// --------------- Single-process mode ---------------
+	// Use an explicit listener so the configured Network is honored (fasthttp's
+	// ListenAndServe hardcodes tcp4).
+	ln, err := net.Listen(network, url)
+	if err != nil {
+		log.Fatalf("Error start server %v", err)
+	}
+
+	if hasTLS {
+		if err = fly.server.ServeTLS(ln, certFile, keyFile); err != nil {
+			log.Fatalf("Error start server %v", err)
+		}
+		return
+	}
+
+	log.Fatal(fly.server.Serve(ln))
 }
 
 // serveFastHTTP Serve FastHTTP via HTTP function

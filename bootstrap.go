@@ -17,13 +17,13 @@ import (
 //                              Bootstrap
 // ====================================================================
 
-// Bootstrap initializes the application by loading environment variables from .env file.
-// It calls godotenv.Load() to load environment variables from a .env file in the current directory.
-// If the .env file cannot be loaded, the function will log a fatal error and terminate the application.
+// Bootstrap initializes the application by loading environment variables from a .env file.
+// A missing .env file is not fatal: applications legitimately run from real environment
+// variables (containers, CI, production) with no .env present. Any load error is logged
+// at info level and execution continues.
 func Bootstrap() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Infof("Skipping .env file load: %v", err)
 	}
 }
 
@@ -136,6 +136,10 @@ func setupLog() {
 	log.Info("Setup Logs")
 }
 
+// ansiRegexp matches ANSI color/SGR escape codes. Compiled once at package
+// init rather than on every Write call.
+var ansiRegexp = regexp.MustCompile("\033\\[[0-9;]*m")
+
 // ansiStripper is a writer that strips ANSI color codes before writing to the underlying writer.
 type ansiStripper struct {
 	writer io.Writer
@@ -144,11 +148,8 @@ type ansiStripper struct {
 // Write implements the io.Writer interface.
 // It strips ANSI color codes from the input before writing to the underlying writer.
 func (s *ansiStripper) Write(p []byte) (n int, err error) {
-	// Regular expression to match ANSI color codes
-	re := regexp.MustCompile("\033\\[[0-9;]*m")
-
 	// Strip ANSI color codes
-	clean := re.ReplaceAll(p, []byte(""))
+	clean := ansiRegexp.ReplaceAll(p, []byte(""))
 
 	// Write the cleaned content to the underlying writer
 	_, err = s.writer.Write(clean)
